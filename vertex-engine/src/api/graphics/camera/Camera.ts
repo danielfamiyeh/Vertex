@@ -141,7 +141,7 @@ export class Camera {
     const light = new Vector(0, 0, -1).normalize();
 
     const raySimilarity = light.dot(normal);
-    const brightness = raySimilarity;
+    const brightness = Math.max(0.25, raySimilarity);
 
     let color = new Color({
       type: 'rgb',
