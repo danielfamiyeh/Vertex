@@ -43,7 +43,15 @@ export class GameEngine {
         this.graphics.canvas.width,
         this.graphics.canvas.height
       );
+      this.graphics.ctx?.translate(
+        this.graphics.canvas.width / 2,
+        this.graphics.canvas.height / 2
+      );
       this.graphics.render(this._scene.root.children);
+      this.graphics.ctx?.translate(
+        -this.graphics.canvas.width / 2,
+        -this.graphics.canvas.height / 2
+      );
       this._lastFrame = now - (delta % interval);
     }
 

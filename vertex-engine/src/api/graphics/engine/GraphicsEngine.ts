@@ -69,9 +69,8 @@ export class GraphicsEngine {
     });
 
     // @ts-ignore
-    (
-      window.__VERTEX_GAME_ENGINE__ as GameEngine
-    ).scene.root.children.__CAMERA__ = cameraEntity;
+    const gameEngine = window.__VERTEX_GAME_ENGINE__ as GameEngine;
+    gameEngine.scene.root.children.__CAMERA__ = cameraEntity;
 
     cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
     cameraEntity.body.forces.rotation = new Vector(0, 0, 0);
@@ -186,14 +185,11 @@ export class GraphicsEngine {
   }
 
   private rasterize(raster: Triangle[] | undefined) {
-    if (!raster) return;
-
-    raster.sort((a, b) => b.zMidpoint - a.zMidpoint);
-
-    raster.forEach((rasterObj) => {
-      const { color } = this.camera.illuminate(rasterObj.worldNormal);
-      rasterObj.color = `#${color.toHex()}`;
-    });
+    raster &&
+      raster.forEach((rasterObj) => {
+        const { color } = this.camera.illuminate(rasterObj.worldNormal);
+        rasterObj.color = `#${color.toHex()}`;
+      });
 
     return raster;
   }
@@ -286,14 +282,18 @@ export class GraphicsEngine {
   }
 
   render(entities: Record<string, Entity>) {
-    const { ctx, _canvas } = this;
-    ctx?.translate(_canvas.width / 2, _canvas.height / 2);
+    const raster: Triangle[] = [];
+
     Object.keys(entities).forEach((id) => {
       const entity = entities[id];
       this.render(entity.children);
-      this.screen(this.rasterize(this.geometry(entity)));
+      const _raster = this.rasterize(this.geometry(entity));
+      _raster && raster.push(..._raster);
     });
-    ctx?.translate(-_canvas.width / 2, -_canvas.height / 2);
+
+    raster.sort((a, b) => b.zMidpoint - a.zMidpoint);
+
+    this.screen(raster);
   }
 
   get meshes() {
