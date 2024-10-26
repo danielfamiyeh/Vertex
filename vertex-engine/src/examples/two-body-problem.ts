@@ -35,9 +35,9 @@ export const initTwoBodyProblemExample = async (gameEngine: GameEngine) => {
           self.rotation.add(self.forces.rotation);
         },
         applyGravity(_, self, entities) {
-          // self.forces.velocity.add(
-          //   fGravity(entities.moon, entities.earth).scale(-1 / self.mass)
-          // );
+          self.forces.velocity.add(
+            fGravity(entities.moon, entities.earth).scale(-1 / self.mass)
+          );
         },
         move(_, self) {
           self.position.add(self.forces.velocity);
