@@ -8,6 +8,7 @@ export class Entity {
   public scale?: Vector;
   public body?: RigidBody;
   public colliders: Record<string, Collider> = {};
+  public children: Record<string, Entity> = {};
 
   constructor(private readonly _id: string) {}
 

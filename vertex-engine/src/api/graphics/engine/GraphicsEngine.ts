@@ -13,7 +13,7 @@ import { GameEngine } from '../../game/engine/GameEngine';
 
 export class GraphicsEngine {
   // TODO: Underscore all private class members
-  private ctx: CanvasRenderingContext2D | null;
+  private _ctx: CanvasRenderingContext2D | null;
   private projectionMatrix: Matrix;
   private zOffset: Vector;
   private camera: Camera;
@@ -23,12 +23,12 @@ export class GraphicsEngine {
   static angle = 180;
 
   constructor(
-    private canvas = document.getElementById('canvas') as HTMLCanvasElement,
+    private _canvas = document.getElementById('canvas') as HTMLCanvasElement,
     options?: GraphicsEngineOptions
   ) {
-    this.ctx = this.canvas.getContext('2d', { alpha: false });
+    this._ctx = this._canvas.getContext('2d', { alpha: false });
 
-    if (!this.ctx) throw new Error('Cannot access Canvas context');
+    if (!this._ctx) throw new Error('Cannot access Canvas context');
 
     const _options = Object.assign(
       {},
@@ -36,17 +36,17 @@ export class GraphicsEngine {
       options
     );
 
-    this.ctx.strokeStyle = 'white';
-    this.ctx.fillStyle = 'white';
+    this._ctx.strokeStyle = 'white';
+    this._ctx.fillStyle = 'white';
 
     const { projectionMatrix, zOffset } = Matrix.projectionMatrix(
-      canvas,
+      _canvas,
       _options.camera.near,
       _options.camera.far,
       _options.camera.fieldOfView
     );
 
-    this.scale = options?.scale ?? canvas.width;
+    this.scale = options?.scale ?? _canvas.width;
     this.projectionMatrix = projectionMatrix;
     this.zOffset = new Vector(0, 0, zOffset);
 
@@ -56,8 +56,8 @@ export class GraphicsEngine {
       displacement: _options.camera.displacement,
       near: _options.camera.near,
       far: _options.camera.far,
-      bottom: canvas.height,
-      right: canvas.width,
+      bottom: _canvas.height,
+      right: _canvas.width,
       rotation: _options.camera.rotation,
     });
 
@@ -69,8 +69,9 @@ export class GraphicsEngine {
     });
 
     // @ts-ignore
-    (window.__VERTEX_GAME_ENGINE__ as GameEngine).entities.__CAMERA__ =
-      cameraEntity;
+    (
+      window.__VERTEX_GAME_ENGINE__ as GameEngine
+    ).scene.root.children.__CAMERA__ = cameraEntity;
 
     cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
     cameraEntity.body.forces.rotation = new Vector(0, 0, 0);
@@ -85,77 +86,72 @@ export class GraphicsEngine {
 
     this._meshes = {};
   }
-  // TODO: normalize model coordinates [-1,1] so that radius is 1
 
-  geometry(entities: Record<string, Entity>) {
+  private geometry(entity: Entity) {
     const { camera, projectionMatrix, zOffset } = this;
-    const entityIds = Object.keys(entities);
 
     const raster: Triangle[] = [];
     const toRaster: Triangle[] = [];
 
     const { viewMatrix } = Matrix.viewMatrix(camera);
 
-    entityIds.forEach((id) => {
-      const entity = entities[id];
-      const mesh = entity.mesh;
-      const worldMatrix = Matrix.worldMatrix(
-        entity.body?.rotation,
-        entity.body?.position
+    const mesh = entity.mesh;
+    const worldMatrix = Matrix.worldMatrix(
+      entity.body?.rotation,
+      entity.body?.position
+    );
+
+    if (!mesh) return;
+
+    mesh.triangles.forEach((modelPoints) => {
+      const worldPoints = modelPoints.map(
+        (point) => worldMatrix.mult(point.matrix).vector
       );
 
-      if (!mesh) return;
+      const pNormal = Vector.sub(worldPoints[1], worldPoints[0])
+        .cross(Vector.sub(worldPoints[2], worldPoints[0]))
+        .normalize()
+        .extend(0);
 
-      mesh.triangles.forEach((modelPoints) => {
-        const worldPoints = modelPoints.map(
-          (point) => worldMatrix.mult(point.matrix).vector
+      const raySimilarity = Vector.sub(
+        Vector.extended(camera.position, 1),
+        worldPoints[0]
+      )
+        .normalize()
+        .dot(pNormal);
+
+      // TODO: Use Camera.shouldCull
+      if (raySimilarity < 0) return;
+
+      const viewPoints = worldPoints.map(
+        (point) => point.rowMatrix.mult(viewMatrix).vector
+      );
+
+      // I'm guessing a depth buffer would help with this?
+      const clippedTriangles = camera.frustrum.near.clipTriangle(viewPoints);
+
+      clippedTriangles.forEach((points: Vector[]) => {
+        const projectedPoints = points.map((point) =>
+          projectionMatrix.mult(point.columnMatrix).vector.sub(zOffset)
         );
 
-        const pNormal = Vector.sub(worldPoints[1], worldPoints[0])
-          .cross(Vector.sub(worldPoints[2], worldPoints[0]))
-          .normalize()
-          .extend(0);
-
-        const raySimilarity = Vector.sub(
-          Vector.extended(camera.position, 1),
-          worldPoints[0]
-        )
-          .normalize()
-          .dot(pNormal);
-
-        // TODO: Use Camera.shouldCull
-        if (raySimilarity < 0) return;
-
-        const viewPoints = worldPoints.map(
-          (point) => point.rowMatrix.mult(viewMatrix).vector
+        const finalPoints = projectedPoints.map((point) =>
+          Vector.div(point, point.z).scale(
+            (this._canvas.height / this._canvas.width) * this.scale
+          )
         );
 
-        // I'm guessing a depth buffer would help with this?
-        const clippedTriangles = camera.frustrum.near.clipTriangle(viewPoints);
-
-        clippedTriangles.forEach((points: Vector[]) => {
-          const projectedPoints = points.map((point) =>
-            projectionMatrix.mult(point.columnMatrix).vector.sub(zOffset)
-          );
-
-          const finalPoints = projectedPoints.map((point) =>
-            Vector.div(point, point.z).scale(
-              (this.canvas.height / this.canvas.width) * this.scale
-            )
-          );
-
-          toRaster.push(
-            new Triangle(
-              finalPoints,
-              (projectedPoints[0].z +
-                projectedPoints[1].z +
-                projectedPoints[2].z) /
-                3,
-              pNormal,
-              ''
-            )
-          );
-        });
+        toRaster.push(
+          new Triangle(
+            finalPoints,
+            (projectedPoints[0].z +
+              projectedPoints[1].z +
+              projectedPoints[2].z) /
+              3,
+            pNormal,
+            ''
+          )
+        );
       });
     });
 
@@ -189,7 +185,9 @@ export class GraphicsEngine {
     return raster;
   }
 
-  rasterize(raster: Triangle[]) {
+  private rasterize(raster: Triangle[] | undefined) {
+    if (!raster) return;
+
     raster.sort((a, b) => b.zMidpoint - a.zMidpoint);
 
     raster.forEach((rasterObj) => {
@@ -200,10 +198,11 @@ export class GraphicsEngine {
     return raster;
   }
 
-  screen(raster: Triangle[]) {
-    const { ctx, canvas } = this;
-    ctx?.clearRect(0, 0, canvas.width, canvas.height);
-    ctx?.translate(canvas.width / 2, canvas.height / 2);
+  private screen(raster: Triangle[] | undefined) {
+    if (!raster) return;
+
+    const { ctx } = this;
+
     raster.forEach((raster) => {
       if (!ctx) return;
 
@@ -220,8 +219,6 @@ export class GraphicsEngine {
       ctx?.lineTo(p1.x, -p1.y);
       ctx?.stroke();
     });
-
-    ctx?.translate(-canvas.width / 2, -canvas.height / 2);
   }
 
   async loadMesh(id: string, url: string, scale: Vector) {
@@ -289,10 +286,25 @@ export class GraphicsEngine {
   }
 
   render(entities: Record<string, Entity>) {
-    this.screen(this.rasterize(this.geometry(entities)));
+    const { ctx, _canvas } = this;
+    ctx?.translate(_canvas.width / 2, _canvas.height / 2);
+    Object.keys(entities).forEach((id) => {
+      const entity = entities[id];
+      this.render(entity.children);
+      this.screen(this.rasterize(this.geometry(entity)));
+    });
+    ctx?.translate(-_canvas.width / 2, -_canvas.height / 2);
   }
 
   get meshes() {
     return this._meshes;
+  }
+
+  get ctx() {
+    return this._ctx;
+  }
+
+  get canvas() {
+    return this._canvas;
   }
 }

@@ -46,43 +46,44 @@ export class Camera {
   }
 
   defaultKeyUpListener(event: KeyboardEvent) {
-    // @ts-ignore
-
     const key = event.key.toLowerCase();
 
-    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine).entities
-      .__CAMERA__;
+    // @ts-ignore
+    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine).scene
+      .root.children.__CAMERA__;
+
+    if (!cameraEntity.body) return;
 
     if (key === 'w' || key === 's') {
-      cameraEntity.body?.forces.velocity = new Vector(0, 0, 0);
+      cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
     }
 
     if (key === 'arrowdown' || key === 'arrowup') {
-      cameraEntity.body?.forces.velocity.y = 0;
+      cameraEntity.body.forces.velocity.y = 0;
     }
 
     if (key === 'arrowright' || key === 'arrowleft') {
-      cameraEntity.body?.forces.velocity = new Vector(0, 0, 0);
+      cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
     }
 
     if (key === 'a' || key === 'd') {
-      cameraEntity.body?.forces.rotation.x = 0;
+      cameraEntity.body.forces.rotation.x = 0;
     }
   }
 
   defaultKeydownListener(event: KeyboardEvent) {
     // @ts-ignore
-    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine).entities
-      .__CAMERA__;
+    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine).scene
+      .root.children.__CAMERA__;
 
     if (!cameraEntity.body) return;
 
     if (event.key === 'ArrowUp') {
-      cameraEntity.body?.forces.velocity.y = this._displacement;
+      cameraEntity.body.forces.velocity.y = this._displacement;
     }
 
     if (event.key === 'ArrowDown') {
-      cameraEntity.body?.forces.velocity.y = -this._displacement;
+      cameraEntity.body.forces.velocity.y = -this._displacement;
     }
 
     if (event.key === 'ArrowLeft') {
@@ -91,7 +92,7 @@ export class Camera {
         .normalize()
         .scale(this._displacement);
 
-      cameraEntity.body?.forces.velocity = left;
+      cameraEntity.body.forces.velocity = left;
     }
 
     if (event.key === 'ArrowRight') {
@@ -100,25 +101,25 @@ export class Camera {
         .normalize()
         .scale(-this._displacement);
 
-      cameraEntity.body?.forces.velocity = right;
+      cameraEntity.body.forces.velocity = right;
     }
 
     if (event.key.toLowerCase() === 'a') {
-      cameraEntity.body?.forces.rotation.x = -this._rotation;
+      cameraEntity.body.forces.rotation.x = -this._rotation;
     }
 
     if (event.key.toLowerCase() === 'd') {
-      cameraEntity.body?.forces.rotation.x = this._rotation;
+      cameraEntity.body.forces.rotation.x = this._rotation;
     }
 
     if (event.key.toLowerCase() === 'w') {
-      cameraEntity.body?.forces.velocity = Vector.normalize(
+      cameraEntity.body.forces.velocity = Vector.normalize(
         this._direction
       ).scale(this._displacement);
     }
 
     if (event.key.toLowerCase() === 's') {
-      cameraEntity.body?.forces.velocity = Vector.normalize(
+      cameraEntity.body.forces.velocity = Vector.normalize(
         this._direction
       ).scale(-this._displacement);
     }
