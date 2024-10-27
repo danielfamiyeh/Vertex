@@ -34,8 +34,8 @@ export class RigidBody {
     });
   }
 
-  addForce(id: string, force: Vector) {
-    if (this._parentEntity) {
+  addForce(id: string, force: Vector, recursive = true) {
+    if (this._parentEntity && recursive) {
       Object.keys(this._parentEntity.children).forEach((childId) => {
         const childEntity = this._parentEntity?.children[childId];
         childEntity && childEntity.body?.addForce(id, force);
@@ -45,8 +45,8 @@ export class RigidBody {
     this._forces[id] = force;
   }
 
-  addTransform(id: string, transform: RigidBodyTransform) {
-    if (this._parentEntity) {
+  addTransform(id: string, transform: RigidBodyTransform, recursive = true) {
+    if (this._parentEntity && recursive) {
       Object.keys(this._parentEntity.children).forEach((childId) => {
         const childEntity = this._parentEntity?.children[childId];
         childEntity && childEntity?.body?.addTransform(id, transform);

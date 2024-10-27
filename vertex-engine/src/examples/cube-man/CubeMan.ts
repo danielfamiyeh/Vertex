@@ -2,6 +2,10 @@ import { GameEngine } from '../../api/game/engine/GameEngine';
 import { Entity } from '../../api/game/entity/Entity';
 import { Vector } from '../../api/math/vector/Vector';
 
+const limbRotation = 1.5;
+const rotationLimit = 15;
+const headRotationLimit = 30;
+
 export const CubeMan = async (gameEngine: GameEngine) => {
   const head = await gameEngine.createEntity('head', {
     graphics: {
@@ -10,6 +14,9 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
     physics: {
       position: new Vector(0, 20, -5),
+      forces: {
+        rotation: new Vector(0, limbRotation, 0),
+      },
     },
   });
 
@@ -23,7 +30,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
     },
   });
 
-  const rightUpperArm = await gameEngine.createEntity('rightUpperArm', {
+  const rightArm = await gameEngine.createEntity('rightArm', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/cube.obj',
       scale: new Vector(1, 2, 1),
@@ -31,10 +38,13 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
     physics: {
       position: new Vector(3.5, 16, -5),
+      forces: {
+        rotation: new Vector(limbRotation, 0, 0),
+      },
     },
   });
 
-  const leftUpperArm = await gameEngine.createEntity('leftUpperArm', {
+  const leftArm = await gameEngine.createEntity('leftArm', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/cube.obj',
       scale: new Vector(1, 2, 1),
@@ -42,93 +52,75 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
     physics: {
       position: new Vector(-3.5, 16, -5),
+      forces: { rotation: new Vector(-limbRotation, 0, 0) },
     },
   });
 
-  const leftLowerArm = await gameEngine.createEntity('leftLowerArm', {
+  const rightLeg = await gameEngine.createEntity('rightLeg', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/cube.obj',
       scale: new Vector(1, 2, 1),
     },
 
     physics: {
-      position: new Vector(-3.5, 12, -5),
+      position: new Vector(1.1, 5.5, -5),
+      forces: {
+        rotation: new Vector(limbRotation, 0, 0),
+      },
     },
   });
 
-  const rightLowerArm = await gameEngine.createEntity('rightLowerArm', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
-      scale: new Vector(1, 2, 1),
-    },
-
-    physics: {
-      position: new Vector(3.5, 12, -5),
-    },
-  });
-
-  const rightUpperLeg = await gameEngine.createEntity('rightUpperLeg', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
-      scale: new Vector(1, 2, 1),
-    },
-
-    physics: {
-      position: new Vector(1, 6, -5),
-    },
-  });
-
-  const leftUpperLeg = await gameEngine.createEntity('leftUpperLeg', {
+  const leftLeg = await gameEngine.createEntity('leftLeg', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/cube.obj',
       scale: new Vector(-1, 2, 1),
     },
 
     physics: {
-      position: new Vector(-1, 6, -5),
-    },
-  });
-
-  const rightLowerLeg = await gameEngine.createEntity('rightLowerLeg', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
-      scale: new Vector(1, 2, 1),
-    },
-
-    physics: {
-      position: new Vector(1, 2, -5),
-    },
-  });
-
-  const leftLowerLeg = await gameEngine.createEntity('leftLowerLeg', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
-      scale: new Vector(1, 2, 1),
-    },
-
-    physics: {
-      position: new Vector(-1, 2, -5),
+      position: new Vector(-1.1, 5.5, -5),
+      forces: {
+        rotation: new Vector(-limbRotation, 0, 0),
+      },
     },
   });
 
   const cubeMan = new Entity('cubeMan').setRigidBody();
-  const rightArm = new Entity('rightArm').setRigidBody();
-  const leftArm = new Entity('leftArm').setRigidBody();
   const legs = new Entity('legs').setRigidBody();
-  const rightLeg = new Entity('rightLeg').setRigidBody();
-  const leftLeg = new Entity('leftLeg').setRigidBody();
+  const arms = new Entity('arms').setRigidBody();
 
-  cubeMan.addChildren({ head, torso, legs });
-  torso.addChildren({ rightArm, leftArm });
-  rightArm.addChildren({ rightUpperArm, rightLowerArm });
-  leftArm.addChildren({ leftUpperArm, leftLowerArm });
+  arms.addChildren({ rightArm, leftArm });
   legs.addChildren({ rightLeg, leftLeg });
-  rightLeg.addChildren({ rightUpperLeg, rightLowerLeg });
-  leftLeg.addChildren({ leftUpperLeg, leftLowerLeg });
+  cubeMan.addChildren({ head, torso, legs, arms });
 
-  cubeMan.body?.addForce('velocity', new Vector(0, 0, 0.1));
+  arms.body?.addTransform('rotate', (_, self) => {
+    if (self.rotation.x >= rotationLimit || self.rotation.x <= -rotationLimit)
+      self.forces.rotation.scale(-1);
+
+    self.forces.rotation && self.rotation.add(self.forces.rotation);
+  });
+
+  legs.body?.addTransform('rotate', (_, self) => {
+    if (self.rotation.x >= rotationLimit || self.rotation.x <= -rotationLimit)
+      self.forces.rotation.scale(-1);
+
+    self.forces.rotation && self.rotation.add(self.forces.rotation);
+  });
+
+  head.body?.addTransform('rotation', (_, self) => {
+    if (
+      self.rotation.y >= headRotationLimit ||
+      self.rotation.y <= -headRotationLimit
+    )
+      self.forces.rotation.scale(-1);
+
+    self.forces.rotation && self.rotation.add(self.forces.rotation);
+  });
+
+  cubeMan.body?.addForce('velocity', new Vector(0, 0, 0.1), false);
+
   cubeMan.body?.addTransform('move', (_, self) => {
-    self.position.add(self.forces.velocity);
+    cubeMan.body?.forces.velocity &&
+      self.position.add(cubeMan.body?.forces.velocity);
   });
 
   return cubeMan;
