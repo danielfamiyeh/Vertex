@@ -31,27 +31,22 @@ export class GameEngine {
     const now = Date.now();
     const interval = 1000 / this.fps;
     const delta = now - this.lastFrame;
+    const {
+      graphics: { ctx, canvas },
+    } = this;
 
     if (delta > interval / 2) {
       this.physics.update(delta, this._scene.root.children);
     }
 
     if (delta > interval) {
-      this.graphics.ctx?.clearRect(
-        0,
-        0,
-        this.graphics.canvas.width,
-        this.graphics.canvas.height
-      );
-      this.graphics.ctx?.translate(
-        this.graphics.canvas.width / 2,
-        this.graphics.canvas.height / 2
-      );
+      ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      ctx?.translate(canvas.width / 2, canvas.height / 2);
+
       this.graphics.render(this._scene.root.children);
-      this.graphics.ctx?.translate(
-        -this.graphics.canvas.width / 2,
-        -this.graphics.canvas.height / 2
-      );
+
+      ctx?.translate(-canvas.width / 2, -canvas.height / 2);
+
       this._lastFrame = now - (delta % interval);
     }
 
@@ -65,7 +60,7 @@ export class GameEngine {
         mesh: string;
         scale?: Vector;
       };
-      physics?: RigidBodyOptions;
+      physics?: Omit<RigidBodyOptions, 'id'>;
     } = {}
   ) {
     const { graphics, physics } = options;
@@ -73,7 +68,8 @@ export class GameEngine {
 
     entity.scale = graphics?.scale ?? new Vector(1, 1, 1);
 
-    if (physics) entity.body = new RigidBody(physics);
+    if (physics)
+      entity.body = new RigidBody({ parentEntity: entity, ...physics });
 
     if (graphics?.mesh)
       await this.loadEntityMesh(entity, graphics.mesh, entity.scale);

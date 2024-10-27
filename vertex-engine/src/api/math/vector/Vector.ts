@@ -87,7 +87,7 @@ export class Vector {
    * @returns {Vector}   Zero vector
    */
   static zeroes(dim: number): Vector {
-    return new Vector(...new Array(dim).map(() => 0));
+    return new Vector(...Array(dim).fill(0));
   }
 
   /**

@@ -1,7 +1,6 @@
 import { Entity } from '../entity/Entity';
 
 export class Scene {
-  private _entities: Record<string, Entity> = {};
   private _root: Entity;
 
   constructor() {
@@ -10,9 +9,5 @@ export class Scene {
 
   get root() {
     return this._root;
-  }
-
-  get entities() {
-    return this._entities;
   }
 }
