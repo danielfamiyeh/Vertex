@@ -68,7 +68,8 @@ export class GameEngine {
 
     entity.scale = graphics?.scale ?? new Vector(1, 1, 1);
 
-    if (physics) entity.body = new RigidBody({ id, ...physics });
+    if (physics)
+      entity.body = new RigidBody({ parentEntity: entity, ...physics });
 
     if (graphics?.mesh)
       await this.loadEntityMesh(entity, graphics.mesh, entity.scale);

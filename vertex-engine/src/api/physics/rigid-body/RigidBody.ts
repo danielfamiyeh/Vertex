@@ -5,25 +5,25 @@ import { RigidBodyTransform } from './RigidBody.types';
 import { Sphere } from '../../math/sphere/Sphere';
 
 export class RigidBody {
-  private _id: string;
   private _position: Vector;
   private _rotation: Vector;
   private _mass: number;
   private _transforms: Record<string, RigidBodyTransform>;
   private _forces: Record<string, Vector> = {};
   private _boundingSphere: Sphere;
+  private _parentEntity?: Entity;
 
-  constructor(options: RigidBodyOptions) {
-    this._id = options.id;
-    this._position = options.position ?? Vector.zeroes(3);
-    this._rotation = options.rotation ?? Vector.zeroes(3);
-    this._mass = options.mass ?? 1;
-    this._forces = options.forces ?? {};
-    this._transforms = options.transforms ?? {};
+  constructor(options?: RigidBodyOptions) {
+    this._position = options?.position ?? Vector.zeroes(3);
+    this._rotation = options?.rotation ?? Vector.zeroes(3);
+    this._mass = options?.mass ?? 1;
+    this._forces = options?.forces ?? {};
+    this._transforms = options?.transforms ?? {};
     this._boundingSphere = new Sphere(
       this._position,
-      options.sphereRadius ?? 0
+      options?.sphereRadius ?? 0
     );
+    this._parentEntity = options?.parentEntity;
   }
 
   update(dTime: number, entities: Record<string, Entity>) {
@@ -34,26 +34,26 @@ export class RigidBody {
     });
   }
 
-  // addForce(id: string, force: Vector, entity?: Entity) {
+  addForce(id: string, force: Vector) {
+    if (this._parentEntity) {
+      Object.keys(this._parentEntity.children).forEach((childId) => {
+        const childEntity = this._parentEntity?.children[childId];
+        childEntity && childEntity.body?.addForce(id, force);
+      });
+    }
 
-  // }
+    this._forces[id] = force;
+  }
 
-  addTransform(id: string, transform: RigidBodyTransform, entity?: Entity) {
-    if (entity) {
-      console.log(entity);
-      Object.keys(entity.children).forEach((childId) => {
-        const childEntity = entity.children[childId];
-
-        console.log(childEntity);
-        childEntity.body?.addTransform(id, transform, childEntity);
+  addTransform(id: string, transform: RigidBodyTransform) {
+    if (this._parentEntity) {
+      Object.keys(this._parentEntity.children).forEach((childId) => {
+        const childEntity = this._parentEntity?.children[childId];
+        childEntity && childEntity?.body?.addTransform(id, transform);
       });
     }
 
     this._transforms[id] = transform;
-  }
-
-  get id() {
-    return this._id;
   }
 
   get position() {
