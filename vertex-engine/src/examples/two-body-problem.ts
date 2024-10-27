@@ -83,6 +83,4 @@ export const initTwoBodyProblemExample = async (gameEngine: GameEngine) => {
 
   gameEngine.scene.root.children.earth = earth;
   gameEngine.scene.root.children.moon = moon;
-
-  console.log(gameEngine);
 };

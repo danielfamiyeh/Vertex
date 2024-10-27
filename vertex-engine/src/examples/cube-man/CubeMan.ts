@@ -1,3 +1,4 @@
+import { RigidBody } from '../../api/physics/rigid-body/RigidBody';
 import { GameEngine } from '../../api/game/engine/GameEngine';
 import { Entity } from '../../api/game/entity/Entity';
 import { Vector } from '../../api/math/vector/Vector';
@@ -12,9 +13,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
       position: new Vector(0, 20, -5),
       rotation: new Vector(0, 2, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -39,11 +38,9 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
     physics: {
       position: new Vector(3.5, 16, -5),
-      rotation: new Vector(0, 2, 0),
+      rotation: new Vector(0, 0, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -57,11 +54,9 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
     physics: {
       position: new Vector(-3.5, 16, -5),
-      rotation: new Vector(0, 2, 0),
+      rotation: new Vector(0, 0, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -74,12 +69,10 @@ export const CubeMan = async (gameEngine: GameEngine) => {
     },
 
     physics: {
-      position: new Vector(3.5, 12, -5),
-      rotation: new Vector(0, 2, 0),
+      position: new Vector(-3.5, 12, -5),
+      rotation: new Vector(0, 0, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -92,12 +85,10 @@ export const CubeMan = async (gameEngine: GameEngine) => {
     },
 
     physics: {
-      position: new Vector(-3.5, 12, -5),
-      rotation: new Vector(0, 2, 0),
+      position: new Vector(3.5, 12, -5),
+      rotation: new Vector(0, 0, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -111,11 +102,9 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
     physics: {
       position: new Vector(1, 6, -5),
-      rotation: new Vector(0, 2, 0),
+      rotation: new Vector(0, 0, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -124,16 +113,14 @@ export const CubeMan = async (gameEngine: GameEngine) => {
   const leftUpperLeg = await gameEngine.createEntity('leftUpperLeg', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/cube.obj',
-      scale: new Vector(1, 2, 1),
+      scale: new Vector(-1, 2, 1),
     },
 
     physics: {
       position: new Vector(-1, 6, -5),
-      rotation: new Vector(0, 2, 0),
+      rotation: new Vector(0, 0, 0),
 
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
+      forces: {},
 
       transforms: {},
     },
@@ -146,13 +133,9 @@ export const CubeMan = async (gameEngine: GameEngine) => {
     },
 
     physics: {
-      position: new Vector(-1, 2, -5),
-      rotation: new Vector(0, 2, 0),
-
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
-
+      position: new Vector(1, 2, -5),
+      rotation: new Vector(0, 0, 0),
+      forces: {},
       transforms: {},
     },
   });
@@ -164,27 +147,50 @@ export const CubeMan = async (gameEngine: GameEngine) => {
     },
 
     physics: {
-      position: new Vector(1, 2, -5),
-      rotation: new Vector(0, 2, 0),
-
-      forces: {
-        velocity: new Vector(0, 0, 0),
-      },
-
+      position: new Vector(-1, 2, -5),
+      rotation: new Vector(0, 0, 0),
+      forces: {},
       transforms: {},
     },
   });
 
   const cubeMan = new Entity('cubeMan');
 
+  // Offset children params based on parent
+  cubeMan.body = new RigidBody({
+    id: 'cubeMan',
+    position: new Vector(0, 0, 0),
+    rotation: new Vector(0, 1, 0),
+  });
+
+  if (cubeMan.body) {
+    cubeMan.body.forces.rotation = new Vector(0, 0.1, 0);
+  }
+
+  const rightArm = new Entity('rightArm');
+  const leftArm = new Entity('leftArm');
+
   cubeMan.children.head = head;
   cubeMan.children.torso = torso;
-  cubeMan.children.torso.children.rightArm = new Entity('rightArm');
+
+  cubeMan.children.torso.children.rightArm = rightArm;
   cubeMan.children.torso.children.leftArm = new Entity('leftArm');
 
   cubeMan.children.legs = new Entity('legs');
+  cubeMan.children.legs.body = new RigidBody({
+    id: 'legs',
+  });
+
   cubeMan.children.legs.children.rightLeg = new Entity('rightLeg');
   cubeMan.children.legs.children.leftLeg = new Entity('leftLeg');
+
+  cubeMan.children.legs.children.rightLeg.body = new RigidBody({
+    id: 'rightLeg',
+  });
+
+  cubeMan.children.torso.children.rightArm.body = new RigidBody({
+    id: 'rightArm',
+  });
 
   cubeMan.children.torso.children.rightArm.children.upperArm = rightUpperArm;
   cubeMan.children.torso.children.rightArm.children.lowerArm = rightLowerArm;
@@ -196,7 +202,14 @@ export const CubeMan = async (gameEngine: GameEngine) => {
   cubeMan.children.legs.children.rightLeg.children.lowerLeg = rightLowerLeg;
 
   cubeMan.children.legs.children.leftLeg.children.upperLeg = leftUpperLeg;
-  cubeMan.children.legs.children.leftLeg.children.lowerrLeg = leftLowerLeg;
+  cubeMan.children.legs.children.leftLeg.children.lowerLeg = leftLowerLeg;
 
+  cubeMan.body.addTransform(
+    'rotate',
+    (_, self, __entities) => {
+      self.rotation.add(new Vector(0, 1, 0));
+    },
+    cubeMan
+  );
   return cubeMan;
 };

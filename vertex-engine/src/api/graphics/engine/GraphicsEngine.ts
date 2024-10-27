@@ -64,6 +64,7 @@ export class GraphicsEngine {
     const cameraEntity = new Entity('__CAMERA__');
 
     cameraEntity.body = new RigidBody({
+      id: 'camera',
       position: this.camera.position,
       rotation: this.camera.direction,
     });

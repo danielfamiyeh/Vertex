@@ -60,7 +60,7 @@ export class GameEngine {
         mesh: string;
         scale?: Vector;
       };
-      physics?: RigidBodyOptions;
+      physics?: Omit<RigidBodyOptions, 'id'>;
     } = {}
   ) {
     const { graphics, physics } = options;
@@ -68,7 +68,7 @@ export class GameEngine {
 
     entity.scale = graphics?.scale ?? new Vector(1, 1, 1);
 
-    if (physics) entity.body = new RigidBody(physics);
+    if (physics) entity.body = new RigidBody({ id, ...physics });
 
     if (graphics?.mesh)
       await this.loadEntityMesh(entity, graphics.mesh, entity.scale);
