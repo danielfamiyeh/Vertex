@@ -1,14 +1,7 @@
 import { ColorSpace } from './Color.types';
 
 export class Color {
-  type: ColorSpace;
-  comps: Array<number>;
-
-  constructor(options: { comps: Array<number>; type: ColorSpace }) {
-    const { type, comps } = options;
-    this.type = type;
-    this.comps = [...comps];
-  }
+  constructor(private _comps: number[], private _type: ColorSpace) {}
 
   /**
    * Convert color object to HSV space
@@ -16,9 +9,9 @@ export class Color {
    * @returns {Color} Color object in HSV
    */
   RGBToHSV(): Color {
-    // if (this.type !== 'rgb') return this;
+    if (this._type !== 'rgb') return this;
 
-    const primes = this.comps.map((comp) => comp / 255);
+    const primes = this._comps.map((comp) => comp / 255);
     const [redPrime, greenPrime, bluePrime] = primes;
     const cMax = Math.max(...primes);
     const cMin = Math.min(...primes);
@@ -54,7 +47,7 @@ export class Color {
 
     const _hue = hue < 0 ? 360 + hue : hue > 360 ? hue - 360 : hue;
 
-    return new Color({ comps: [_hue, sat, val], type: 'hsv' });
+    return new Color([_hue, sat, val], 'hsv');
   }
 
   /**
@@ -63,10 +56,10 @@ export class Color {
    * @returns Color object in RGB
    */
   HSVtoRGB(): Color {
-    // if (this.type !== 'hsv') return this;
+    if (this._type !== 'hsv') return this;
 
-    const hue = this.comps[0];
-    let [sat, val] = this.comps.slice(1);
+    const hue = this._comps[0];
+    let [sat, val] = this._comps.slice(1);
 
     sat = sat > 1 ? 1 : sat;
     val = val > 1 ? 1 : val;
@@ -95,10 +88,10 @@ export class Color {
 
     const primes = [redPrime, greenPrime, bluePrime];
 
-    return new Color({
-      type: 'rgb',
-      comps: primes.map((colorPrime) => Math.round((colorPrime + m) * 255)),
-    });
+    return new Color(
+      primes.map((colorPrime) => Math.round((colorPrime + m) * 255)),
+      'rgb'
+    );
   }
 
   /**
@@ -107,13 +100,21 @@ export class Color {
    * @returns {string} Hex string
    */
   toHex(): string {
-    const rgbCol = this.type === 'rgb' ? this : this.HSVtoRGB();
-    return rgbCol.comps
+    const rgbCol = this._type === 'rgb' ? this : this.HSVtoRGB();
+    return rgbCol._comps
       .map((comp) =>
         comp.toString(16).length === 1
           ? `0${comp.toString(16)}`
           : comp.toString(16)
       )
       .join('');
+  }
+
+  get type() {
+    return this._type;
+  }
+
+  get comps() {
+    return this._comps;
   }
 }

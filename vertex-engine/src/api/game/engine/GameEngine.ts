@@ -4,7 +4,7 @@ import { PhysicsEngine } from '../../physics/engine/PhysicsEngine';
 import { GameEngineOptions } from './GameEngine.utils';
 import { Entity } from '../entity/Entity';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
-import { RigidBodyOptions } from '@vertex/api/physics/rigid-body/RigidBody.utils';
+import { RigidBodyOptions } from '../../physics/rigid-body/RigidBody.utils';
 import { Vector } from '../../math/vector/Vector';
 import { Scene } from '../scene/Scene';
 
@@ -94,8 +94,12 @@ export class GameEngine {
     return entity;
   }
 
-  get scene() {
-    return this._scene;
+  addToScene(entities: Record<string, Entity>) {
+    this._scene.root.addChildren(entities);
+  }
+
+  get cameraEntity() {
+    return this._scene.root.children.camera;
   }
 
   get physics() {

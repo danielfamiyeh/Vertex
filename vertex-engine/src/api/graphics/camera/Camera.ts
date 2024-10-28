@@ -1,8 +1,7 @@
+import { Plane } from '../../math/plane/Plane';
 import { Vector } from '../../math/vector/Vector';
 import { CameraFrustrum, CameraOptions } from './Camera.types';
-import { Color } from '../color/Color';
-import { Plane } from '../../math/plane/Plane';
-import { GameEngine } from '@vertex/api/game/engine/GameEngine';
+import { GameEngine } from '../../game/engine/GameEngine';
 
 const upVector = new Vector(0, 1, 0);
 
@@ -49,8 +48,8 @@ export class Camera {
     const key = event.key.toLowerCase();
 
     // @ts-ignore
-    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine).scene
-      .root.children.__CAMERA__;
+    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine)
+      .cameraEntity;
 
     if (!cameraEntity.body) return;
 
@@ -73,8 +72,8 @@ export class Camera {
 
   defaultKeydownListener(event: KeyboardEvent) {
     // @ts-ignore
-    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine).scene
-      .root.children.__CAMERA__;
+    const cameraEntity = (window.__VERTEX_GAME_ENGINE__ as GameEngine)
+      .cameraEntity;
 
     if (!cameraEntity.body) return;
 
@@ -135,21 +134,6 @@ export class Camera {
       .normalize()
       .dot(pNormal);
     return { pNormal, raySimilarity, shouldCull: raySimilarity < epsilon };
-  }
-
-  illuminate(normal: Vector) {
-    const light = new Vector(0, 0, -1).normalize();
-
-    const raySimilarity = light.dot(normal);
-    const brightness = Math.max(0.25, raySimilarity);
-
-    let color = new Color({
-      type: 'rgb',
-      comps: [128, 255, 255],
-    }).RGBToHSV();
-    color.comps[2] = brightness;
-
-    return { color };
   }
 
   get position() {

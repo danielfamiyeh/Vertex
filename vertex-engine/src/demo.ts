@@ -19,4 +19,7 @@ const gameEngine = new GameEngine({
   physics: {},
 });
 
-examples.cubeMan(gameEngine).then(() => gameEngine.start());
+// examples.balls(gameEngine);
+// examples.twoBodyProblem(gameEngine);
+// examples.cubeMan(gameEngine);
+examples.lighting(gameEngine);

@@ -8,8 +8,10 @@ import { Triangle } from '../triangle/Triangle';
 import { cameraBounds } from '../camera/Camera.utils';
 import { Entity } from '../../game/entity/Entity';
 import { Sphere } from '../../math/sphere/Sphere';
+import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
+import { Color } from '../color/Color';
 
 export class GraphicsEngine {
   // TODO: Underscore all private class members
@@ -18,7 +20,9 @@ export class GraphicsEngine {
   private zOffset: Vector;
   private camera: Camera;
   private _meshes: Record<string, Mesh> = {};
+  private _lights: Record<string, Light> = {};
   private scale: number;
+  private _style: 'fill' | 'stroke';
 
   static angle = 180;
 
@@ -64,14 +68,13 @@ export class GraphicsEngine {
     const cameraEntity = new Entity('__CAMERA__');
 
     cameraEntity.body = new RigidBody({
-      id: 'camera',
       position: this.camera.position,
       rotation: this.camera.direction,
     });
 
     // @ts-ignore
     const gameEngine = window.__VERTEX_GAME_ENGINE__ as GameEngine;
-    gameEngine.scene.root.children.__CAMERA__ = cameraEntity;
+    gameEngine.addToScene({ camera: cameraEntity });
 
     cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
     cameraEntity.body.forces.rotation = new Vector(0, 0, 0);
@@ -84,6 +87,7 @@ export class GraphicsEngine {
       cameraEntity.body?.rotation.add(cameraEntity.body.forces.rotation);
     };
 
+    this._style = _options.style;
     this._meshes = {};
   }
 
@@ -186,10 +190,19 @@ export class GraphicsEngine {
   }
 
   private rasterize(raster: Triangle[] | undefined) {
+    const lightIds = Object.keys(this._lights);
     raster &&
       raster.forEach((rasterObj) => {
-        const { color } = this.camera.illuminate(rasterObj.worldNormal);
-        rasterObj.color = `#${color.toHex()}`;
+        let comps = [0, 0, 0];
+
+        lightIds.forEach((lightId) => {
+          const light = this._lights[lightId];
+          const { color } = light.illuminate(rasterObj.worldNormal);
+          color.comps.forEach((val, i) => (comps[i] += val));
+        });
+
+        comps = comps.map((val) => Math.round(val / lightIds.length));
+        rasterObj.color = `#${new Color(comps, 'rgb').toHex()}`;
       });
 
     return raster;
@@ -198,7 +211,7 @@ export class GraphicsEngine {
   private screen(raster: Triangle[] | undefined) {
     if (!raster) return;
 
-    const { ctx } = this;
+    const { ctx, style } = this;
 
     raster.forEach((raster) => {
       if (!ctx) return;
@@ -207,14 +220,15 @@ export class GraphicsEngine {
         points: [p1, p2, p3],
         color,
       } = raster;
-      ctx.strokeStyle = color;
+
+      ctx[`${style}Style`] = color;
 
       ctx?.beginPath();
       ctx?.moveTo(p1.x, -p1.y);
       ctx?.lineTo(p2.x, -p2.y);
       ctx?.lineTo(p3.x, -p3.y);
       ctx?.lineTo(p1.x, -p1.y);
-      ctx?.stroke();
+      ctx[style]();
     });
   }
 
@@ -297,12 +311,24 @@ export class GraphicsEngine {
     this.screen(raster);
   }
 
+  get lights() {
+    return this._lights;
+  }
+
   get meshes() {
     return this._meshes;
   }
 
   get ctx() {
     return this._ctx;
+  }
+
+  get style() {
+    return this._style;
+  }
+
+  set style(style: 'fill' | 'stroke') {
+    this._style = style;
   }
 
   get canvas() {
