@@ -1,8 +1,8 @@
-import { Mesh } from '@vertex/api/graphics/mesh/Mesh';
-import { Vector } from '@vertex/api/math/vector/Vector';
+import { Mesh } from '../../graphics/mesh/Mesh';
+import { Vector } from '../../math/vector/Vector';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { Collider } from '../../physics/collider/Collider';
-import { RigidBodyOptions } from '@vertex/api/physics/rigid-body/RigidBody.utils';
+import { RigidBodyOptions } from '../../physics/rigid-body/RigidBody.utils';
 
 export class Entity {
   public mesh?: Mesh;

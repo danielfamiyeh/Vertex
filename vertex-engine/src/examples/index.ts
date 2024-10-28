@@ -1,9 +1,11 @@
 import { initBallsExample } from './balls';
+import { initCubeManExample } from './cube-man';
+import { initLightingExample } from './lighting';
 import { initTwoBodyProblemExample } from './two-body-problem';
-import { initCubeManExample } from './cube-man/index';
 
 export const examples = {
   balls: initBallsExample,
-  twoBodyProblem: initTwoBodyProblemExample,
   cubeMan: initCubeManExample,
+  lighting: initLightingExample,
+  twoBodyProblem: initTwoBodyProblemExample,
 };

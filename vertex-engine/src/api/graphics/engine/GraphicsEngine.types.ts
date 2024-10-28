@@ -1,4 +1,5 @@
 import { Vector } from '../../math/vector/Vector';
+import { Light } from '../light/Light';
 
 export type GraphicsEngineOptions = {
   style?: 'fill' | 'stroke';
@@ -11,6 +12,7 @@ export type GraphicsEngineOptions = {
     direction: Vector;
     rotation: number;
   };
+  lights?: Record<string, Light>;
   fps?: number;
   scale?: number;
 };

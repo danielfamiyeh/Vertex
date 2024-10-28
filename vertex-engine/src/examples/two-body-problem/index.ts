@@ -1,7 +1,7 @@
-import { Entity } from '@vertex/api/game/entity/Entity';
-import { GameEngine } from '../api/game/engine/GameEngine';
-import { Vector } from '../api/math/vector/Vector';
-import { SphereCollider } from '../api/physics/collider/SphereCollider';
+import { Entity } from '../../api/game/entity/Entity';
+import { GameEngine } from '../../api/game/engine/GameEngine';
+import { Vector } from '../../api/math/vector/Vector';
+import { SphereCollider } from '../../api/physics/collider/SphereCollider';
 
 const fGravity = (entityA: Entity, entityB: Entity) => {
   if (!entityA.body || !entityB.body) return new Vector(0, 0, 0);
@@ -81,6 +81,6 @@ export const initTwoBodyProblemExample = async (gameEngine: GameEngine) => {
   });
   earth.colliders.withMoon.isActive = true;
 
-  gameEngine.scene.root.children.earth = earth;
-  gameEngine.scene.root.children.moon = moon;
+  gameEngine.addToScene({ earth, moon });
+  gameEngine.start();
 };

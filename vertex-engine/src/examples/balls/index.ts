@@ -1,5 +1,5 @@
-import { GameEngine } from '../api/game/engine/GameEngine';
-import { Vector } from '../api/math/vector/Vector';
+import { GameEngine } from '../../api/game/engine/GameEngine';
+import { Vector } from '../../api/math/vector/Vector';
 
 export const initBallsExample = async (gameEngine: GameEngine) => {
   const earth = await gameEngine.createEntity('earth', {
@@ -31,7 +31,6 @@ export const initBallsExample = async (gameEngine: GameEngine) => {
     },
     physics: {
       position: new Vector(0, 0, -25),
-      rotation: new Vector(0, 0, 0),
       forces: {
         velocity: new Vector(0, 0, 0.1),
         acceleration: new Vector(0, 0, 0.2),
@@ -47,4 +46,7 @@ export const initBallsExample = async (gameEngine: GameEngine) => {
       },
     },
   });
+
+  gameEngine.addToScene({ earth, mars });
+  gameEngine.start();
 };
