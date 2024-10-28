@@ -10,7 +10,7 @@ export class PointLight extends Light {
     private _intensity = 1
   ) {
     super(color);
-    this._direction.normalize();
+    this._direction.scale(-1).normalize();
     this._color.RGBToHSV();
 
     if (_intensity < 0 || _intensity > 1) {
@@ -26,7 +26,10 @@ export class PointLight extends Light {
 
     if (!isInViewOfLight) return new Color([0, 0, 0], 'rgb');
 
-    const brightness = Math.abs(this.direction.dot(normal) * this._intensity);
+    const brightness = Math.max(
+      0,
+      this.direction.dot(normal) * this._intensity
+    );
     const comps = [...this.color.comps];
     comps[2] = brightness;
 

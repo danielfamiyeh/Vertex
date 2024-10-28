@@ -42,7 +42,7 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
 
   gameEngine.graphics.lights.pointLight = new PointLight(
     new Color([0, 0, 255], 'rgb'),
-    new Vector(3, 5, 2),
+    new Vector(3, 5, 3),
     new Vector(-1, -1, 0),
     0.8
   );
