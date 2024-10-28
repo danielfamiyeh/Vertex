@@ -4,18 +4,19 @@ import { Vector } from '../../math/vector/Vector';
 
 export class DirectionalLight extends Light {
   constructor(id: string, color: Color, private _direction: Vector) {
-    super(id, color);
+    super(color);
     this._direction.scale(-1).normalize();
     this._color = color.RGBToHSV();
   }
 
-  override illuminate(normal: Vector): { color: Color; raySimilarity: number } {
+  override illuminate(normal: Vector) {
     const raySimilarity = this.direction.dot(normal);
     const brightness = Math.max(0.25, raySimilarity);
 
-    this.color.comps[2] = brightness;
+    const comps = [...this.color.comps];
+    comps[2] = brightness;
 
-    return { raySimilarity, color: this.color.HSVtoRGB() };
+    return new Color(comps, 'hsv').HSVtoRGB();
   }
 
   get color() {
