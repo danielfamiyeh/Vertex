@@ -3,6 +3,7 @@ import { GameEngine } from '../../api/game/engine/GameEngine';
 import { Entity } from '../../api/game/entity/Entity';
 import { Light } from '../../api/graphics/light/Light';
 import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
+import { PointLight } from '../../api/graphics/light/PointLight';
 import { Color } from '../../api/graphics/color/Color';
 
 export const initLightingExample = async (gameEngine: GameEngine) => {
@@ -25,21 +26,25 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
     self.rotation.add(self.forces.rotation)
   );
 
-  gameEngine.graphics.lights.ambient = new Light(
-    'ambient',
-    new Color([255, 0, 0], 'rgb')
-  );
+  gameEngine.graphics.lights.ambient = new Light(new Color([90, 0, 0], 'rgb'));
 
-  gameEngine.graphics.lights.directional = new DirectionalLight(
-    'directional',
-    new Color([0, 255, 0], 'rgb'),
-    new Vector(1, 0, 0)
-  );
+  // gameEngine.graphics.lights.directional = new DirectionalLight(
+  //   'directional',
+  //   new Color([0, 255, 0], 'rgb'),
+  //   new Vector(1, 0, 0)
+  // );
 
   gameEngine.graphics.lights.directional2 = new DirectionalLight(
     'directional2',
     new Color([0, 0, 255], 'rgb'),
     new Vector(0, 1, 0)
+  );
+
+  gameEngine.graphics.lights.pointLight = new PointLight(
+    new Color([0, 0, 255], 'rgb'),
+    new Vector(3, 5, 2),
+    new Vector(-1, -1, 0),
+    0.8
   );
 
   gameEngine.addToScene({ sphere });

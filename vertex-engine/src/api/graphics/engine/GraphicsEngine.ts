@@ -197,7 +197,7 @@ export class GraphicsEngine {
 
         lightIds.forEach((lightId) => {
           const light = this._lights[lightId];
-          const { color } = light.illuminate(rasterObj.worldNormal);
+          const color = light.illuminate(rasterObj.worldNormal);
           color.comps.forEach((val, i) => (comps[i] += val));
         });
 
