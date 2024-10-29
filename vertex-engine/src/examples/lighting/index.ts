@@ -17,37 +17,62 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
     },
   });
 
+  const sphere2 = await gameEngine.createEntity('sphere', {
+    graphics: {
+      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      scale: Vector.uniform(2, 3),
+    },
+    physics: {
+      position: new Vector(-20, 0, 5),
+    },
+  });
+
+  const sphere3 = await gameEngine.createEntity('sphere', {
+    graphics: {
+      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      scale: Vector.uniform(2, 3),
+    },
+    physics: {
+      position: new Vector(-10, 20, 5),
+    },
+  });
+
   const allSpheres = new Entity('allSpheres')
     .setRigidBody()
-    .addChildren({ sphere });
+    .addChildren({ sphere, sphere2, sphere3 });
 
   allSpheres.body?.addForce('rotation', new Vector(0, 2, 0));
   allSpheres.body?.addTransform('rotate', (_, self) =>
     self.rotation.add(self.forces.rotation)
   );
 
-  gameEngine.graphics.lights.ambient = new Light(new Color([90, 0, 0], 'rgb'));
+  gameEngine.graphics.lights.ambient = new Light(new Color([0, 0, 0], 'rgb'));
 
   // gameEngine.graphics.lights.directional = new DirectionalLight(
-  //   'directional',
   //   new Color([0, 255, 0], 'rgb'),
   //   new Vector(1, 0, 0)
   // );
 
-  gameEngine.graphics.lights.directional2 = new DirectionalLight(
-    'directional2',
-    new Color([0, 0, 255], 'rgb'),
-    new Vector(0, 1, 0)
+  gameEngine.graphics.lights.point = new PointLight(
+    new Vector(-10, 0, 0),
+    new Color([255, 255, 255], 'rgb'),
+    0.15
   );
 
-  gameEngine.graphics.lights.pointLight = new PointLight(
-    new Color([0, 0, 255], 'rgb'),
-    new Vector(3, 5, 2),
-    new Vector(-1, -1, 0),
-    0.8
-  );
+  // gameEngine.graphics.lights.directional2 = new DirectionalLight(
+  //   'directional2',
+  //   new Color([0, 0, 255], 'rgb'),
+  //   new Vector(0, 1, 0)
+  // );
 
-  gameEngine.addToScene({ sphere });
+  // gameEngine.graphics.lights.SpotLight = new SpotLight(
+  //   new Color([0, 0, 255], 'rgb'),
+  //   new Vector(3, 5, 3),
+  //   new Vector(1, 0, 0),
+  //   0.8
+  // );
+
+  gameEngine.addToScene({ allSpheres });
   gameEngine.graphics.style = 'fill';
 
   gameEngine.start();

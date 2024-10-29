@@ -5,8 +5,13 @@ export class Triangle {
     private _points: Vector[],
     private _zMidpoint: number,
     private _worldNormal: Vector,
+    private _worldPoint: Vector,
     private _color: string
   ) {}
+
+  get worldPoint() {
+    return this._worldPoint;
+  }
 
   get zMidpoint() {
     return this._zMidpoint;

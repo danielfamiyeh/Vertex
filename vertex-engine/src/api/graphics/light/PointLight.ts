@@ -4,40 +4,35 @@ import { Light } from './Light';
 
 export class PointLight extends Light {
   constructor(
-    color: Color,
     private _position: Vector,
-    private _direction: Vector,
-    private _intensity = 1
+    color: Color,
+    private _attenuation: number = 0
   ) {
     super(color);
-    this._direction.normalize();
-    this._color.RGBToHSV();
-
-    if (_intensity < 0 || _intensity > 1) {
-      throw new Error(
-        'PointLight intensity must be a value in the range [0, 1]'
-      );
-    }
+    this._color = this._color.RGBToHSV();
   }
 
-  override illuminate(normal: Vector) {
-    const isInViewOfLight =
-      Vector.sub(this.position, normal).normalize().dot(normal) > 0;
+  override illuminate(normal: Vector, point: Vector): Color {
+    const distanceVec = Vector.sub(this._position, point);
+    const raySimilarity = Vector.normalize(distanceVec).dot(normal);
+    const distance = distanceVec.mag;
 
-    if (!isInViewOfLight) return new Color([0, 0, 0], 'rgb');
+    if (raySimilarity <= 0) return new Color([0, 0, 0], 'rgb');
 
-    const brightness = Math.abs(this.direction.dot(normal) * this._intensity);
-    const comps = [...this.color.comps];
-    comps[2] = brightness;
+    const comps = [...this._color.comps];
+    comps[2] = Math.max(
+      0,
+      raySimilarity / (distance * this.attentuation || 1) || 1
+    );
 
     return new Color(comps, 'hsv').HSVtoRGB();
   }
 
-  get position() {
-    return this._position;
+  get attentuation() {
+    return this._attenuation;
   }
 
-  get direction() {
-    return this._direction;
+  get position() {
+    return this._position;
   }
 }

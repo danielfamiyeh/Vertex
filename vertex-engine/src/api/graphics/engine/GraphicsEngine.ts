@@ -40,9 +40,6 @@ export class GraphicsEngine {
       options
     );
 
-    this._ctx.strokeStyle = 'white';
-    this._ctx.fillStyle = 'white';
-
     const { projectionMatrix, zOffset } = Matrix.projectionMatrix(
       _canvas,
       _options.camera.near,
@@ -93,6 +90,7 @@ export class GraphicsEngine {
 
   private geometry(entity: Entity) {
     const { camera, projectionMatrix, zOffset } = this;
+    const lightIds = Object.keys(this._lights);
 
     const raster: Triangle[] = [];
     const toRaster: Triangle[] = [];
@@ -112,7 +110,7 @@ export class GraphicsEngine {
         (point) => worldMatrix.mult(point.matrix).vector
       );
 
-      const pNormal = Vector.sub(worldPoints[1], worldPoints[0])
+      const worldNormal = Vector.sub(worldPoints[1], worldPoints[0])
         .cross(Vector.sub(worldPoints[2], worldPoints[0]))
         .normalize()
         .extend(0);
@@ -122,7 +120,7 @@ export class GraphicsEngine {
         worldPoints[0]
       )
         .normalize()
-        .dot(pNormal);
+        .dot(worldNormal);
 
       // TODO: Use Camera.shouldCull
       if (raySimilarity < 0) return;
@@ -152,7 +150,8 @@ export class GraphicsEngine {
               projectedPoints[1].z +
               projectedPoints[2].z) /
               3,
-            pNormal,
+            worldNormal,
+            worldPoints[0],
             ''
           )
         );
@@ -176,6 +175,7 @@ export class GraphicsEngine {
                 points,
                 _triangle.zMidpoint,
                 _triangle.worldNormal,
+                _triangle.worldPoint,
                 _triangle.color
               )
           );
@@ -191,20 +191,31 @@ export class GraphicsEngine {
 
   private rasterize(raster: Triangle[] | undefined) {
     const lightIds = Object.keys(this._lights);
+
     raster &&
-      raster.forEach((rasterObj) => {
-        let comps = [0, 0, 0];
+      raster.forEach((triangle) => {
+        let lightCount = 0;
+        let colorComps = [0, 0, 0];
+        let colorHex = '';
+
+        const { worldPoint, worldNormal } = triangle;
 
         lightIds.forEach((lightId) => {
           const light = this._lights[lightId];
-          const color = light.illuminate(rasterObj.worldNormal);
-          color.comps.forEach((val, i) => (comps[i] += val));
+          const color = light.illuminate(
+            new Vector(worldNormal.x, worldNormal.y, worldNormal.z),
+            worldPoint.copy()
+          );
+          color.comps.forEach((val, i) => (colorComps[i] += val));
+          if (colorComps.reduce((a, b) => a + b, 0) > 0) lightCount++;
         });
 
-        comps = comps.map((val) => Math.round(val / lightIds.length));
-        rasterObj.color = `#${new Color(comps, 'rgb').toHex()}`;
+        colorComps = colorComps.map((val) =>
+          Math.round(val / (lightCount || 1))
+        );
+        colorHex = `#${new Color(colorComps, 'rgb').toHex()}`;
+        triangle.color = `#${new Color(colorComps, 'rgb').toHex()}`;
       });
-
     return raster;
   }
 
