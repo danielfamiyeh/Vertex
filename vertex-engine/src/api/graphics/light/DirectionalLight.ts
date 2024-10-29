@@ -3,7 +3,7 @@ import { Light } from './Light';
 import { Vector } from '../../math/vector/Vector';
 
 export class DirectionalLight extends Light {
-  constructor(id: string, color: Color, private _direction: Vector) {
+  constructor(color: Color, private _direction: Vector) {
     super(color);
     this._direction.scale(-1).normalize();
     this._color = color.RGBToHSV();

@@ -4,7 +4,7 @@ import { Color } from '../color/Color';
 export class Light {
   constructor(protected _color: Color) {}
 
-  illuminate(_normal: Vector) {
+  illuminate(_normal: Vector, point: Vector) {
     return this._color;
   }
 
