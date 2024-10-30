@@ -1,14 +1,6 @@
 import { Vector } from '../../math/vector/Vector';
 import { Color } from '../color/Color';
 
-export class Light {
-  constructor(protected _color: Color) {}
-
-  illuminate(_normal: Vector, point: Vector) {
-    return this._color;
-  }
-
-  get color() {
-    return this._color;
-  }
+export interface Light {
+  illuminate(normal?: Vector, point?: Vector): Color;
 }
