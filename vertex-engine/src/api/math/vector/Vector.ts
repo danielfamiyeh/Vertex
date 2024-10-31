@@ -350,8 +350,9 @@ export class Vector {
    * @param {number} i   Index
    * @param {number} val New value
    */
-  set(i: number, val: number): void {
+  set(i: number, val: number): Vector {
     this.comps[i] = val;
+    return this;
   }
 
   get matrix() {

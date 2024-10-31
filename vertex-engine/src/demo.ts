@@ -7,7 +7,7 @@ const gameEngine = new GameEngine({
     fps: 30,
     scale: 300,
     camera: {
-      near: 0.1,
+      near: 0.01,
       far: 1000,
       fieldOfView: 45,
       position: new Vector(0, 10, -30),

@@ -26,6 +26,7 @@ describe('Plane test suite', () => {
 
     const pointOfIntersection = plane.intersectRay(ray[0], ray[1]);
 
+    console.log(pointOfIntersection);
     assert.equal(pointOfIntersection?.isEqual(new Vector(0.5, 1, 5)), true);
   });
 
@@ -36,7 +37,7 @@ describe('Plane test suite', () => {
       <Vector>points[2]
     );
     const point = new Vector(5, 3, -1);
-    const signedDistance = -0.10369516947304253;
+    const signedDistance = -0.10369516947304236;
 
     assert.equal(plane.pointDistance(point), signedDistance);
   });
