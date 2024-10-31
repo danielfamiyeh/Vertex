@@ -13,11 +13,16 @@ import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { Color } from '../color/Color';
 
+let printed = false;
+function print(message: string) {
+  !printed && console.log(message);
+  printed = true;
+}
+
 export class GraphicsEngine {
   // TODO: Underscore all private class members
   private _ctx: CanvasRenderingContext2D | null;
   private projectionMatrix: Matrix;
-  private zOffset: Vector;
   private camera: Camera;
   private _meshes: Record<string, Mesh> = {};
   private _lights: Record<string, Light> = {};
@@ -49,7 +54,6 @@ export class GraphicsEngine {
 
     this.scale = options?.scale ?? _canvas.width;
     this.projectionMatrix = projectionMatrix;
-    this.zOffset = new Vector(0, 0, zOffset);
 
     this.camera = new Camera({
       position: _options.camera.position,
@@ -89,7 +93,7 @@ export class GraphicsEngine {
   }
 
   private geometry(entity: Entity) {
-    const { camera, projectionMatrix, zOffset } = this;
+    const { camera, projectionMatrix } = this;
     const lightIds = Object.keys(this._lights);
 
     const raster: Triangle[] = [];
@@ -133,19 +137,23 @@ export class GraphicsEngine {
       const clippedTriangles = camera.frustrum.near.clipTriangle(viewPoints);
 
       clippedTriangles.forEach((points: Vector[]) => {
-        const projectedPoints = points.map((point) =>
-          projectionMatrix.mult(point.columnMatrix).vector.sub(zOffset)
+        const projectedPoints = points.map(
+          (point) => projectionMatrix.mult(point.columnMatrix).vector
         );
 
-        const finalPoints = projectedPoints.map((point) =>
-          Vector.div(point, point.z).scale(
-            (this._canvas.height / this._canvas.width) * this.scale
-          )
+        const perspectivePoints = projectedPoints.map(
+          (point) =>
+            new Vector(
+              ...Vector.div(point, point.z)
+                .scale((this._canvas.height / this._canvas.width) * this.scale)
+                .set(3, 1)
+                .comps.slice(0, 3)
+            )
         );
 
         toRaster.push(
           new Triangle(
-            finalPoints,
+            perspectivePoints,
             (projectedPoints[0].z +
               projectedPoints[1].z +
               projectedPoints[2].z) /
@@ -162,31 +170,36 @@ export class GraphicsEngine {
     toRaster.forEach((triangle) => {
       const queue: Triangle[] = [];
       queue.push(triangle);
+      let numNewTriangles = 1;
 
       cameraBounds.forEach((bound) => {
-        const _triangle = queue.pop();
-        if (!_triangle) return;
+        while (numNewTriangles > 0) {
+          const _triangle = queue.pop();
+          if (!_triangle) return;
+          numNewTriangles--;
 
-        const clippedTriangles: Triangle[] = camera.frustrum[bound]
-          .clipTriangle(_triangle.points)
-          .map(
-            (points) =>
-              new Triangle(
-                points,
-                _triangle.zMidpoint,
-                _triangle.worldNormal,
-                _triangle.worldPoint,
-                _triangle.color
-              )
-          );
+          const clippedTriangles: Triangle[] = camera.frustrum[bound]
+            .clipTriangle(_triangle.points.filter((t) => t))
+            .map(
+              (points) =>
+                new Triangle(
+                  points,
+                  _triangle.zMidpoint,
+                  _triangle.worldNormal,
+                  _triangle.worldPoint,
+                  _triangle.color
+                )
+            );
 
-        queue.push(...clippedTriangles);
+          queue.push(...clippedTriangles.filter((t) => t));
+        }
+        numNewTriangles = queue.length;
       });
 
       raster.push(...queue);
     });
 
-    return raster;
+    return toRaster;
   }
 
   private rasterize(raster: Triangle[] | undefined) {

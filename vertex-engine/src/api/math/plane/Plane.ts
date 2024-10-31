@@ -4,6 +4,7 @@ export class Plane {
   private _d: number;
 
   constructor(private _point: Vector, private _normal: Vector) {
+    this._normal.normalize();
     this._d = _point.dot(this.normal);
   }
 
@@ -29,29 +30,22 @@ export class Plane {
 
   /**
    * Finds the point at which a ray intersects a plane
+   * https://en.wikipedia.org/wiki/Line–plane_intersection
    *
    * @param {Vector} startPoint   Start coordinate of ray
    * @param {Vector} endPoint     End coordiante of ray
-   * @param {number} epsilon      Margin of error
    * @returns {Vector | null}     Returns Vector if ray intersects plane, else null
    */
-  intersectRay(
-    startPoint: Vector,
-    endPoint: Vector,
-    epsilon: number = 1e-6
-  ): Vector | null {
-    let ray = endPoint.sub(startPoint);
-    const dot = this.normal.dot(ray);
+  intersectRay(startPoint: Vector, endPoint: Vector): Vector | null {
+    const ray = Vector.sub(endPoint, startPoint).normalize();
+    const bottom = ray.dot(this._normal);
+    const top = Vector.sub(this._point, startPoint)
+      .normalize()
+      .dot(this._normal);
 
-    if (Math.abs(dot) > epsilon) {
-      const w = startPoint.copy().sub(this.point);
-      const fac = -this.normal.dot(w) / dot;
-      ray = ray.scale(fac);
+    const d = top / bottom;
 
-      return startPoint.copy().add(ray);
-    }
-
-    return null;
+    return ray.scale(d);
   }
 
   /**
@@ -86,15 +80,18 @@ export class Plane {
     switch (points.inside.length) {
       case 1: {
         // Clip triangle against ray of intersection
-        const newTriangle = input.map((point) => point.copy());
+        const newTriangle: Vector[] = [];
 
         // Preserve inside point
-        newTriangle[0] = points.inside[0];
+        newTriangle.push(points.inside[0]);
 
         // Get new points based on ray intersection from preserved point and plane
-        points.outside.forEach((point) =>
-          this.intersectRay(newTriangle[0], point)
-        );
+        points.outside.forEach((point) => {
+          const newPoint = this.intersectRay(newTriangle[0], point);
+          newPoint && newTriangle.push(newPoint);
+        });
+
+        newTriangles.push(newTriangle);
         break;
       }
 
@@ -103,6 +100,7 @@ export class Plane {
          * Two points lie inside plane so clip triangle against plane
          * Split quad formed by clipping into two triangles
          */
+
         const newTriangle1 = input.map((point) => point.copy());
         const newTriangle2 = input.map((point) => point.copy());
 
@@ -124,6 +122,8 @@ export class Plane {
           points.inside[1],
           points.outside[0]
         ) as Vector;
+
+        newTriangles.push(newTriangle1, newTriangle2);
         break;
       }
 

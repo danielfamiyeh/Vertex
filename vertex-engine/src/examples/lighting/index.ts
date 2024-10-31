@@ -48,7 +48,7 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
   );
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
-    new Color([0, 0, 0], 'rgb')
+    new Color([255, 0, 0], 'rgb')
   );
 
   // gameEngine.graphics.lights.directional = new DirectionalLight(

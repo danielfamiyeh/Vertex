@@ -22,20 +22,17 @@ export class Camera {
       // TODO: Why are some of these flipped?
       near: new Plane(new Vector(0, 0, options.near), new Vector(0, 0, 1)),
       far: new Plane(new Vector(0, 0, options.far), new Vector(0, 0, -1)),
-      left: new Plane(
-        new Vector(options.right / 2 + 1, 0, 0),
-        new Vector(1, 0, 0)
-      ),
+      left: new Plane(new Vector(options.right / 2, 0, 0), new Vector(1, 0, 0)),
       right: new Plane(
-        new Vector(-(options.right / 2) - 1, 0, 0),
+        new Vector(-(options.right / 2), 0, 0),
         new Vector(-1, 0, 0)
       ),
       top: new Plane(
-        new Vector(0, -(options.bottom / 2) - 1, 0),
+        new Vector(0, -(options.bottom / 2), 0),
         new Vector(0, -1, 0)
       ),
       bottom: new Plane(
-        new Vector(0, options.bottom / 2 + 1, 0),
+        new Vector(0, options.bottom / 2, 0),
         new Vector(0, 1, 0)
       ),
     };
