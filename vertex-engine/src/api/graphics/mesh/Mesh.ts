@@ -4,7 +4,7 @@ export class Mesh {
   constructor(
     private readonly _name: string,
     private readonly _vertices: Vector[],
-    private readonly _triangles: Vector[][]
+    private readonly _triangles: number[][]
   ) {}
 
   get vertices() {

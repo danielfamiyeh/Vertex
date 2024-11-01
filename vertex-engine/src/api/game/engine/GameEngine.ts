@@ -79,11 +79,7 @@ export class GameEngine {
 
   async loadEntityMesh(entity: Entity, url: string, scale: Vector) {
     // TODO: Caching
-    const { mesh, boundingSphere } = await this.graphics.loadMesh(
-      entity.id,
-      url,
-      scale
-    );
+    const { mesh, boundingSphere } = await this.graphics.loadMesh(url, scale);
 
     entity.mesh = mesh;
 

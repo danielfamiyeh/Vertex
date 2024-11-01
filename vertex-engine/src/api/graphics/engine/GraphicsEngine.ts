@@ -110,7 +110,9 @@ export class GraphicsEngine {
     if (!mesh) return;
 
     mesh.triangles.forEach((modelPoints) => {
-      const worldPoints = modelPoints.map(
+      const _modelPoints = modelPoints.map((idx) => mesh.vertices[idx]);
+
+      const worldPoints = _modelPoints.map(
         (point) => worldMatrix.mult(point.matrix).vector
       );
 
@@ -223,10 +225,7 @@ export class GraphicsEngine {
           if (colorComps.reduce((a, b) => a + b, 0) > 0) lightCount++;
         });
 
-        colorComps = colorComps.map(
-          (val) => Math.min(val, 255)
-          // Math.round(val / (lightCount || 1))
-        );
+        colorComps = colorComps.map((val) => Math.min(val, 255));
         colorHex = `#${new Color(colorComps, 'rgb').toHex()}`;
         triangle.color = `#${new Color(colorComps, 'rgb').toHex()}`;
       });
@@ -257,66 +256,90 @@ export class GraphicsEngine {
     });
   }
 
-  async loadMesh(id: string, url: string, scale: Vector) {
-    const res = await fetch(url);
-    const file = await res.text();
+  async loadMesh(url: string, scale: Vector) {
+    const meshExists = !!this._meshes[url];
+
+    if (!meshExists) {
+      const res = await fetch(url);
+      const file = await res.text();
+
+      const meshData = {
+        name: '',
+        vertices: [] as Vector[],
+        triangles: [] as number[][],
+      };
+
+      file.split('\n').forEach((line, i) => {
+        const [type, ...parts] = line.replace(/\r/g, '').split(' ');
+
+        if (type === 'o') {
+          meshData.name = parts[0];
+        } else if (type === 'v') {
+          meshData.vertices.push(
+            new Vector(...parts.map((c) => parseFloat(c)))
+          );
+        } else if (type === 'f') {
+          let [p1, p2, p3] = line.slice(2).split(' ');
+          if (!p1 || !p2 || !p3) {
+            throw new Error(
+              `Error parsing face on line ${i + 1} of file ${url}.`
+            );
+          }
+
+          if (p1.includes('/')) {
+            [p1] = p1.split('/');
+            [p2] = p2.split('/');
+            [p3] = p3.split('/');
+          }
+          meshData.triangles.push([
+            parseInt(p1) - 1,
+            parseInt(p2) - 1,
+            parseInt(p3) - 1,
+          ]);
+        }
+      });
+
+      const mesh = new Mesh(
+        meshData.name,
+        meshData.vertices,
+        meshData.triangles
+      );
+      this._meshes[url] = mesh;
+    }
+
+    return this.loadMeshFromCache(url, scale);
+  }
+
+  async loadMeshFromCache(url: string, scale: Vector) {
+    const cachedMesh = this._meshes[url];
 
     const min = new Vector(Infinity, Infinity, Infinity);
     const max = new Vector(-Infinity, -Infinity, -Infinity);
 
     const meshData = {
-      name: '',
-      vertices: [] as Vector[],
-      triangles: [] as Vector[][],
-    };
-
-    file.split('\n').forEach((line, i) => {
-      const [type, ...parts] = line.replace(/\r/g, '').split(' ');
-
-      if (type === 'o') {
-        meshData.name = parts[0];
-      } else if (type === 'v') {
-        meshData.vertices.push(
+      name: cachedMesh.name,
+      vertices: cachedMesh.vertices.map(
+        (v) =>
           new Vector(
-            ...parts.map((v, j) => {
-              const _v = parseFloat(v) * scale.comps[j];
-              if (_v < min.comps[j]) min.comps[j] = _v;
-              if (_v > max.comps[j]) max.comps[j] = _v;
+            ...v.comps.map((c, i) => {
+              const _v = c * scale.comps[i];
+              if (_v < min.comps[i]) min.comps[i] = _v;
+              if (_v > max.comps[i]) max.comps[i] = _v;
 
               return _v;
             }),
             1
           )
-        );
-      } else if (type === 'f') {
-        let [p1, p2, p3] = line.slice(2).split(' ');
-        if (!p1 || !p2 || !p3) {
-          throw new Error(
-            `Error parsing face on line ${i + 1} of file ${url}.`
-          );
-        }
+      ) as Vector[],
+      triangles: cachedMesh.triangles,
+    };
 
-        if (p1.includes('/')) {
-          [p1] = p1.split('/');
-          [p2] = p2.split('/');
-          [p3] = p3.split('/');
-        }
-        meshData.triangles.push([
-          meshData.vertices[parseInt(p1) - 1],
-          meshData.vertices[parseInt(p2) - 1],
-          meshData.vertices[parseInt(p3) - 1],
-        ]);
-      }
-    });
-
-    const mesh = new Mesh(meshData.name, meshData.vertices, meshData.triangles);
-    // const boundingBox = new Box(min, max);
     const boundingSphere = new Sphere(
       Vector.add(min, max).scale(1 / 2),
       Vector.sub(max, min).mag / 2
     );
 
-    this._meshes[id] = mesh;
+    const mesh = new Mesh(meshData.name, meshData.vertices, meshData.triangles);
 
     return { mesh, boundingSphere };
   }
