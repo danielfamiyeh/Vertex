@@ -5,6 +5,7 @@ import { examples } from './examples';
 const gameEngine = new GameEngine({
   graphics: {
     fps: 30,
+    style: 'stroke',
     scale: 300,
     camera: {
       near: 0.01,

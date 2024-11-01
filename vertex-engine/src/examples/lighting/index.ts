@@ -48,13 +48,13 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
   );
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
-    new Color([255, 0, 0], 'rgb')
+    new Color([128, 0, 0], 'rgb')
   );
 
-  // gameEngine.graphics.lights.directional = new DirectionalLight(
-  //   new Color([0, 255, 0], 'rgb'),
-  //   new Vector(1, 0, 0)
-  // );
+  gameEngine.graphics.lights.directional = new DirectionalLight(
+    new Color([0, 255, 0], 'rgb'),
+    new Vector(1, 0, 0)
+  );
 
   gameEngine.graphics.lights.point = new PointLight(
     new Vector(-10, 0, 0),
@@ -63,19 +63,18 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
     0.15
   );
 
-  // gameEngine.graphics.lights.directional2 = new DirectionalLight(
-  //   'directional2',
-  //   new Color([0, 0, 255], 'rgb'),
-  //   new Vector(0, 1, 0)
-  // );
-
-  gameEngine.graphics.lights.SpotLight = new SpotLight(
+  gameEngine.graphics.lights.directional2 = new DirectionalLight(
     new Color([0, 0, 255], 'rgb'),
-    new Vector(50, 100, 0),
-    new Vector(-1, 0, 0),
-    1,
-    20
+    new Vector(-1, 0, 0)
   );
+
+  // gameEngine.graphics.lights.SpotLight = new SpotLight(
+  //   new Color([0, 0, 255], 'rgb'),
+  //   new Vector(50, 100, 0),
+  //   new Vector(-1, 0, 0),
+  //   1,
+  //   20
+  // );
 
   gameEngine.addToScene({ allSpheres });
   gameEngine.graphics.style = 'fill';
