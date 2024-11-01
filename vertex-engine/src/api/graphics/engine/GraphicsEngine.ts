@@ -2,7 +2,7 @@ import { Mesh, MeshStyle } from '../mesh/Mesh';
 import { Camera } from '../camera/Camera';
 import { Matrix } from '../../math/matrix/Matrix';
 import { Vector } from '../../math/vector/Vector';
-import { GraphicsEngineOptions } from './GraphicsEngine.types';
+import { GraphicsEngineOptions, RasterObject } from './GraphicsEngine.types';
 import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from './GraphicsEngine.utils';
 import { Triangle } from '../triangle/Triangle';
 import { cameraBounds } from '../camera/Camera.utils';
@@ -12,12 +12,6 @@ import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { Color } from '../color/Color';
-
-let printed = false;
-function print(message: string) {
-  !printed && console.log(message);
-  printed = true;
-}
 
 export class GraphicsEngine {
   // TODO: Underscore all private class members
@@ -92,10 +86,9 @@ export class GraphicsEngine {
 
   private geometry(entity: Entity) {
     const { camera, projectionMatrix } = this;
-    const lightIds = Object.keys(this._lights);
 
-    const raster: Triangle[] = [];
-    const toRaster: Triangle[] = [];
+    const raster: RasterObject[] = [];
+    const toRaster: RasterObject[] = [];
 
     const { viewMatrix } = Matrix.viewMatrix(camera);
 
@@ -151,49 +144,52 @@ export class GraphicsEngine {
             )
         );
 
-        toRaster.push(
-          new Triangle(
-            perspectivePoints,
-            (projectedPoints[0].z +
-              projectedPoints[1].z +
-              projectedPoints[2].z) /
-              3,
-            worldNormal,
-            worldPoints[0],
-            '',
-            mesh.style
-          )
-        );
+        toRaster.push({
+          triangle: new Triangle(perspectivePoints, '', mesh.style),
+          worldNormal,
+          centroid: Vector.div(
+            Vector.add(
+              Vector.add(projectedPoints[0], projectedPoints[1]),
+              projectedPoints[2]
+            ),
+            3
+          ),
+        });
       });
     });
 
     // Clipping routine
-    toRaster.forEach((triangle) => {
-      const queue: Triangle[] = [];
-      queue.push(triangle);
+    toRaster.forEach((rasterObj) => {
+      const queue: RasterObject[] = [];
+      queue.push(rasterObj);
       let numNewTriangles = 1;
 
       cameraBounds.forEach((bound) => {
         while (numNewTriangles > 0) {
-          const _triangle = queue.pop();
-          if (!_triangle) return;
+          const _rasterObj = queue.pop();
+          if (!_rasterObj) return;
           numNewTriangles--;
 
           const clippedTriangles: Triangle[] = camera.frustrum[bound]
-            .clipTriangle(_triangle.points.filter((t) => t))
+            .clipTriangle(_rasterObj.triangle.points.filter((t) => t))
             .map(
               (points) =>
                 new Triangle(
                   points,
-                  _triangle.zMidpoint,
-                  _triangle.worldNormal,
-                  _triangle.worldPoint,
-                  _triangle.color,
-                  triangle.style
+                  _rasterObj.triangle.color,
+                  _rasterObj.triangle.style
                 )
             );
 
-          queue.push(...clippedTriangles.filter((t) => t));
+          queue.push(
+            ...clippedTriangles
+              .filter((t) => t)
+              .map((t) => ({
+                triangle: t,
+                worldNormal: _rasterObj.worldNormal,
+                centroid: _rasterObj.centroid,
+              }))
+          );
         }
         numNewTriangles = queue.length;
       });
@@ -204,22 +200,22 @@ export class GraphicsEngine {
     return toRaster;
   }
 
-  private rasterize(raster: Triangle[] | undefined) {
+  private rasterize(raster: RasterObject[] | undefined) {
     const lightIds = Object.keys(this._lights);
 
     raster &&
-      raster.forEach((triangle) => {
+      raster.forEach((rasterObj) => {
         let lightCount = 0;
         let colorComps = [0, 0, 0];
         let colorHex = '';
 
-        const { worldPoint, worldNormal } = triangle;
+        const { centroid, worldNormal, triangle } = rasterObj;
 
         lightIds.forEach((lightId) => {
           const light = this._lights[lightId];
           const color = light.illuminate(
             new Vector(worldNormal.x, worldNormal.y, worldNormal.z),
-            worldPoint.copy()
+            centroid.copy()
           );
           color.comps.forEach((val, i) => (colorComps[i] += val));
           if (colorComps.reduce((a, b) => a + b, 0) > 0) lightCount++;
@@ -232,27 +228,28 @@ export class GraphicsEngine {
     return raster;
   }
 
-  private screen(raster: Triangle[] | undefined) {
+  private screen(raster: RasterObject[] | undefined) {
     if (!raster) return;
 
     const { ctx } = this;
 
-    raster.forEach((raster) => {
+    raster.forEach((rasterObj) => {
       if (!ctx) return;
 
       const {
         points: [p1, p2, p3],
         color,
-      } = raster;
+        style,
+      } = rasterObj.triangle;
 
-      ctx[`${raster.style}Style`] = color;
+      ctx[`${style}Style`] = color;
 
       ctx?.beginPath();
       ctx?.moveTo(p1.x, -p1.y);
       ctx?.lineTo(p2.x, -p2.y);
       ctx?.lineTo(p3.x, -p3.y);
       ctx?.lineTo(p1.x, -p1.y);
-      ctx[raster.style]();
+      ctx[style]();
     });
   }
 
@@ -351,7 +348,7 @@ export class GraphicsEngine {
   }
 
   render(entities: Record<string, Entity>) {
-    const raster: Triangle[] = [];
+    const raster: RasterObject[] = [];
 
     Object.keys(entities).forEach((id) => {
       const entity = entities[id];
@@ -360,7 +357,7 @@ export class GraphicsEngine {
       _raster && raster.push(..._raster);
     });
 
-    raster.sort((a, b) => b.zMidpoint - a.zMidpoint);
+    raster.sort((a, b) => b.centroid.z - a.centroid.z);
 
     this.screen(raster);
   }

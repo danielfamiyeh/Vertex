@@ -4,27 +4,12 @@ import { MeshStyle } from '../mesh/Mesh';
 export class Triangle {
   constructor(
     private _points: Vector[],
-    private _zMidpoint: number,
-    private _worldNormal: Vector,
-    private _worldPoint: Vector,
     private _color: string,
     private _style: MeshStyle
   ) {}
 
-  get worldPoint() {
-    return this._worldPoint;
-  }
-
-  get zMidpoint() {
-    return this._zMidpoint;
-  }
-
   get points() {
     return this._points;
-  }
-
-  get worldNormal() {
-    return this._worldNormal;
   }
 
   get color() {
