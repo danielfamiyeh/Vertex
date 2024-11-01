@@ -77,7 +77,6 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
   // );
 
   gameEngine.addToScene({ allSpheres });
-  gameEngine.graphics.style = 'fill';
 
   gameEngine.start();
 };
