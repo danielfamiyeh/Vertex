@@ -7,6 +7,7 @@ import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { RigidBodyOptions } from '../../physics/rigid-body/RigidBody.utils';
 import { Vector } from '../../math/vector/Vector';
 import { Scene } from '../scene/Scene';
+import { MeshStyle } from '@vertex/api/graphics/mesh/Mesh';
 
 export class GameEngine {
   private _fps: number;
@@ -59,6 +60,7 @@ export class GameEngine {
       graphics?: {
         mesh: string;
         scale?: Vector;
+        style?: MeshStyle;
       };
       physics?: Omit<RigidBodyOptions, 'id'>;
     } = {}
@@ -72,14 +74,27 @@ export class GameEngine {
       entity.body = new RigidBody({ parentEntity: entity, ...physics });
 
     if (graphics?.mesh)
-      await this.loadEntityMesh(entity, graphics.mesh, entity.scale);
+      await this.loadEntityMesh(
+        entity,
+        graphics.mesh,
+        entity.scale,
+        graphics.style ?? 'fill'
+      );
 
     return entity;
   }
 
-  async loadEntityMesh(entity: Entity, url: string, scale: Vector) {
-    // TODO: Caching
-    const { mesh, boundingSphere } = await this.graphics.loadMesh(url, scale);
+  async loadEntityMesh(
+    entity: Entity,
+    url: string,
+    scale: Vector,
+    style: MeshStyle
+  ) {
+    const { mesh, boundingSphere } = await this.graphics.loadMesh(
+      url,
+      scale,
+      style
+    );
 
     entity.mesh = mesh;
 

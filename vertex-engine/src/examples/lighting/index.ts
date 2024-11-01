@@ -12,6 +12,7 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
     graphics: {
       mesh: 'http://127.0.0.1:8080/sphere.obj',
       scale: Vector.uniform(2, 3),
+      style: 'stroke',
     },
     physics: {
       position: new Vector(0, 0, 5),
