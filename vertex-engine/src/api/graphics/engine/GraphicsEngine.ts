@@ -1,4 +1,4 @@
-import { Mesh } from '../mesh/Mesh';
+import { Mesh, MeshStyle } from '../mesh/Mesh';
 import { Camera } from '../camera/Camera';
 import { Matrix } from '../../math/matrix/Matrix';
 import { Vector } from '../../math/vector/Vector';
@@ -27,7 +27,6 @@ export class GraphicsEngine {
   private _meshes: Record<string, Mesh> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
-  private _style: 'fill' | 'stroke';
 
   static angle = 180;
 
@@ -88,7 +87,6 @@ export class GraphicsEngine {
       cameraEntity.body?.rotation.add(cameraEntity.body.forces.rotation);
     };
 
-    this._style = _options.style;
     this._meshes = {};
   }
 
@@ -162,7 +160,8 @@ export class GraphicsEngine {
               3,
             worldNormal,
             worldPoints[0],
-            ''
+            '',
+            mesh.style
           )
         );
       });
@@ -189,7 +188,8 @@ export class GraphicsEngine {
                   _triangle.zMidpoint,
                   _triangle.worldNormal,
                   _triangle.worldPoint,
-                  _triangle.color
+                  _triangle.color,
+                  triangle.style
                 )
             );
 
@@ -235,7 +235,7 @@ export class GraphicsEngine {
   private screen(raster: Triangle[] | undefined) {
     if (!raster) return;
 
-    const { ctx, style } = this;
+    const { ctx } = this;
 
     raster.forEach((raster) => {
       if (!ctx) return;
@@ -245,18 +245,18 @@ export class GraphicsEngine {
         color,
       } = raster;
 
-      ctx[`${style}Style`] = color;
+      ctx[`${raster.style}Style`] = color;
 
       ctx?.beginPath();
       ctx?.moveTo(p1.x, -p1.y);
       ctx?.lineTo(p2.x, -p2.y);
       ctx?.lineTo(p3.x, -p3.y);
       ctx?.lineTo(p1.x, -p1.y);
-      ctx[style]();
+      ctx[raster.style]();
     });
   }
 
-  async loadMesh(url: string, scale: Vector) {
+  async loadMesh(url: string, scale: Vector, style: MeshStyle) {
     const meshExists = !!this._meshes[url];
 
     if (!meshExists) {
@@ -302,15 +302,16 @@ export class GraphicsEngine {
       const mesh = new Mesh(
         meshData.name,
         meshData.vertices,
-        meshData.triangles
+        meshData.triangles,
+        style
       );
       this._meshes[url] = mesh;
     }
 
-    return this.loadMeshFromCache(url, scale);
+    return this.loadMeshFromCache(url, scale, style);
   }
 
-  async loadMeshFromCache(url: string, scale: Vector) {
+  async loadMeshFromCache(url: string, scale: Vector, style: MeshStyle) {
     const cachedMesh = this._meshes[url];
 
     const min = new Vector(Infinity, Infinity, Infinity);
@@ -339,7 +340,12 @@ export class GraphicsEngine {
       Vector.sub(max, min).mag / 2
     );
 
-    const mesh = new Mesh(meshData.name, meshData.vertices, meshData.triangles);
+    const mesh = new Mesh(
+      meshData.name,
+      meshData.vertices,
+      meshData.triangles,
+      style
+    );
 
     return { mesh, boundingSphere };
   }
@@ -369,14 +375,6 @@ export class GraphicsEngine {
 
   get ctx() {
     return this._ctx;
-  }
-
-  get style() {
-    return this._style;
-  }
-
-  set style(style: 'fill' | 'stroke') {
-    this._style = style;
   }
 
   get canvas() {

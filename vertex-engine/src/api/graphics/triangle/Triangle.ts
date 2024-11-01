@@ -1,4 +1,5 @@
 import { Vector } from '../../math/vector/Vector';
+import { MeshStyle } from '../mesh/Mesh';
 
 export class Triangle {
   constructor(
@@ -6,7 +7,8 @@ export class Triangle {
     private _zMidpoint: number,
     private _worldNormal: Vector,
     private _worldPoint: Vector,
-    private _color: string
+    private _color: string,
+    private _style: MeshStyle
   ) {}
 
   get worldPoint() {
@@ -31,5 +33,9 @@ export class Triangle {
 
   set color(c: string) {
     this._color = c;
+  }
+
+  get style() {
+    return this._style;
   }
 }
