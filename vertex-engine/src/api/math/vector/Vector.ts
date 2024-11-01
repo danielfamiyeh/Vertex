@@ -17,69 +17,6 @@ export class Vector {
     return new Vector(...new Array(dim).fill(num));
   }
 
-  static rotX(point: Vector, angle: number) {
-    let rad = (angle * Math.PI) / 180,
-      c = Math.cos(rad),
-      s = Math.sin(rad);
-
-    let rotXMat = new Matrix(3, 3);
-    rotXMat.mat[0][0] = 1;
-    rotXMat.mat[1][1] = c;
-    rotXMat.mat[2][2] = c;
-    rotXMat.mat[1][2] = -s;
-    rotXMat.mat[2][1] = s;
-
-    let pointAsMat = point.matrix;
-    let resultAsMat = rotXMat.mult(pointAsMat);
-    return new Vector(
-      resultAsMat.mat[0][0],
-      resultAsMat.mat[1][0],
-      resultAsMat.mat[2][0]
-    );
-  }
-
-  static rotY(point: Vector, angle: number) {
-    let rad = (angle * Math.PI) / 180,
-      c = Math.cos(rad),
-      s = Math.sin(rad);
-
-    let rotMat = new Matrix(3, 3);
-    rotMat.mat[0][0] = c;
-    rotMat.mat[1][1] = 1;
-    rotMat.mat[2][2] = c;
-    rotMat.mat[2][0] = -s;
-    rotMat.mat[0][2] = s;
-
-    let pointAsMat = point.matrix;
-    let resultAsMat = rotMat.mult(pointAsMat);
-    return new Vector(
-      resultAsMat.mat[0][0],
-      resultAsMat.mat[1][0],
-      resultAsMat.mat[2][0]
-    );
-  }
-
-  static rotZ(point: Vector, angle: number) {
-    let rad = (angle * Math.PI) / 180,
-      c = Math.cos(rad),
-      s = Math.sin(rad);
-
-    let rotMat = new Matrix(3, 3);
-    rotMat.mat[0][0] = c;
-    rotMat.mat[1][1] = c;
-    rotMat.mat[2][2] = 1;
-    rotMat.mat[1][0] = s;
-    rotMat.mat[0][1] = -s;
-
-    let pointAsMat = point.matrix;
-    let resultAsMat = rotMat.mult(pointAsMat);
-    return new Vector(
-      resultAsMat.mat[0][0],
-      resultAsMat.mat[1][0],
-      resultAsMat.mat[2][0]
-    );
-  }
-
   /**
    * Returns a zero vector of a given length
    *
@@ -118,20 +55,6 @@ export class Vector {
   static normalize(v: Vector): Vector {
     const mag = v.mag;
     return new Vector(...v.comps.map((comp) => comp / mag));
-  }
-
-  /**
-   * Linearly interpolates (blends) one vector onto another, out-of-place
-   * @param {Vector} v1 Vector 1
-   * @param {Vector} v2 Vector 2
-   * @param {number} t Scalar factor, 1 returns v1, 0 returns v2
-   * @returns {Vector} Interpolated vector
-   */
-  static lerp(v1: Vector, v2: Vector, t: number): Vector {
-    const self = v1.scale(t);
-    const other = v2.scale(1 - t);
-
-    return self.add(other);
   }
 
   /**
@@ -219,36 +142,6 @@ export class Vector {
     const k = a[0] * b[1] - a[1] * b[0];
 
     return new Vector(i, j === 0 ? j : -j, k);
-  }
-
-  /**
-   * Linearly interpolate (blends) one vector onto another
-   * @param {Vector} v  Input vector
-   * @param {number} t  Linear factor, 1 returns this vector, 0 the input
-   */
-  lerp(v: Vector, t: number): Vector {
-    const self = this.scale(t);
-    const other = v.scale(1 - t);
-
-    return self.add(other);
-  }
-
-  /**
-   * Returns vector with maximum values between self and input vector.
-   * If no vector is passed, it returns the maximum component of self
-   *
-   * @param {Vector} v Input vector
-   * @returns {Vector | number} Vector with max values or max component
-   */
-  max(v?: Vector): Vector | number {
-    if (v) {
-      for (let i = 0; i < this.dim; i++) {
-        this.comps[i] = Math.max(this.comps[i], v.get(i));
-      }
-      return this;
-    } else {
-      return Math.max(...this.comps);
-    }
   }
 
   /**

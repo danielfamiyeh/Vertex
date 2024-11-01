@@ -223,8 +223,9 @@ export class GraphicsEngine {
           if (colorComps.reduce((a, b) => a + b, 0) > 0) lightCount++;
         });
 
-        colorComps = colorComps.map((val) =>
-          Math.round(val / (lightCount || 1))
+        colorComps = colorComps.map(
+          (val) => Math.min(val, 255)
+          // Math.round(val / (lightCount || 1))
         );
         colorHex = `#${new Color(colorComps, 'rgb').toHex()}`;
         triangle.color = `#${new Color(colorComps, 'rgb').toHex()}`;
