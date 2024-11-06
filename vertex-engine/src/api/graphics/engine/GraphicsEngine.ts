@@ -101,8 +101,8 @@ export class GraphicsEngine {
 
     if (!mesh) return;
 
-    mesh.triangles.forEach(({ points: modelPoints }) => {
-      const worldPoints = modelPoints.map(
+    mesh.triangles.forEach((triangle) => {
+      const worldPoints = triangle.points.map(
         (point) => worldMatrix.mult(point.matrix).vector
       );
 
@@ -126,10 +126,17 @@ export class GraphicsEngine {
       );
 
       // I'm guessing a depth buffer would help with this?
-      const clippedTriangles = camera.frustrum.near.clipTriangle(viewPoints);
+      const clippedTriangles = camera.frustrum.near.clipTriangle(
+        new Triangle(
+          viewPoints,
+          triangle.color,
+          triangle.style,
+          triangle.texturePoints
+        )
+      );
 
-      clippedTriangles.forEach((points: Vector[]) => {
-        const projectedPoints = points.map(
+      clippedTriangles.forEach((triangle: Triangle) => {
+        const projectedPoints = triangle.points.map(
           (point) => projectionMatrix.mult(point.columnMatrix).vector
         );
 
@@ -144,7 +151,12 @@ export class GraphicsEngine {
         );
 
         toRaster.push({
-          triangle: new Triangle(perspectivePoints, '', mesh.style),
+          triangle: new Triangle(
+            perspectivePoints,
+            triangle.color,
+            triangle.style,
+            triangle.texturePoints
+          ),
           worldNormal,
           centroid: Vector.div(
             Vector.add(
@@ -158,43 +170,43 @@ export class GraphicsEngine {
     });
 
     // Clipping routine
-    toRaster.forEach((rasterObj) => {
-      const queue: RasterObject[] = [];
-      queue.push(rasterObj);
-      let numNewTriangles = 1;
+    // toRaster.forEach((rasterObj) => {
+    //   const queue: RasterObject[] = [];
+    //   queue.push(rasterObj);
+    //   let numNewTriangles = 1;
 
-      cameraBounds.forEach((bound) => {
-        while (numNewTriangles > 0) {
-          const _rasterObj = queue.pop();
-          if (!_rasterObj) return;
-          numNewTriangles--;
+    //   cameraBounds.forEach((bound) => {
+    //     while (numNewTriangles > 0) {
+    //       const _rasterObj = queue.pop();
+    //       if (!_rasterObj) return;
+    //       numNewTriangles--;
 
-          const clippedTriangles: Triangle[] = camera.frustrum[bound]
-            .clipTriangle(_rasterObj.triangle.points.filter((t) => t))
-            .map(
-              (points) =>
-                new Triangle(
-                  points,
-                  _rasterObj.triangle.color,
-                  _rasterObj.triangle.style
-                )
-            );
+    //       const clippedTriangles: Triangle[] = camera.frustrum[bound]
+    //         .clipTriangle(_rasterObj.triangle.points.filter((t) => t))
+    //         .map(
+    //           (points) =>
+    //             new Triangle(
+    //               points,
+    //               _rasterObj.triangle.color,
+    //               _rasterObj.triangle.style
+    //             )
+    //         );
 
-          queue.push(
-            ...clippedTriangles
-              .filter((t) => t)
-              .map((t) => ({
-                triangle: t,
-                worldNormal: _rasterObj.worldNormal,
-                centroid: _rasterObj.centroid,
-              }))
-          );
-        }
-        numNewTriangles = queue.length;
-      });
+    //       queue.push(
+    //         ...clippedTriangles
+    //           .filter((t) => t)
+    //           .map((t) => ({
+    //             triangle: t,
+    //             worldNormal: _rasterObj.worldNormal,
+    //             centroid: _rasterObj.centroid,
+    //           }))
+    //       );
+    //     }
+    //     numNewTriangles = queue.length;
+    //   });
 
-      raster.push(...queue);
-    });
+    //   raster.push(...queue);
+    // });
 
     return toRaster;
   }

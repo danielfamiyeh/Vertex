@@ -1,4 +1,6 @@
+import { Triangle } from '../../graphics/triangle/Triangle';
 import { Vector } from '../vector/Vector';
+import { ClipMap, LinePlaneIntersection } from './Plane.types';
 
 export class Plane {
   private _d: number;
@@ -36,16 +38,19 @@ export class Plane {
    * @param {Vector} endPoint     End coordiante of ray
    * @returns {Vector | null}     Returns Vector if ray intersects plane, else null
    */
-  intersectRay(startPoint: Vector, endPoint: Vector): Vector | null {
+  intersectRay(
+    startPoint: Vector,
+    endPoint: Vector
+  ): LinePlaneIntersection | null {
     const ray = Vector.sub(endPoint, startPoint).normalize();
     const bottom = ray.dot(this._normal);
     const top = Vector.sub(this._point, startPoint)
       .normalize()
       .dot(this._normal);
 
-    const d = top / bottom;
+    const t = top / bottom;
 
-    return ray.scale(d);
+    return { t, ray: ray.scale(t) };
   }
 
   /**
@@ -64,34 +69,56 @@ export class Plane {
    * @param {Triangle} input      Triangle to clip against plane
    * @returns {Array<Triangle>}   Array of triangles produced by clipping input
    */
-  clipTriangle(input: Vector[]): Vector[][] {
-    const newTriangles: Array<Vector[]> = [];
-    const points: { inside: Array<Vector>; outside: Array<Vector> } = {
+  clipTriangle(input: Triangle): Triangle[] {
+    const newTriangles: Triangle[] = [];
+    const points: ClipMap = {
+      inside: [],
+      outside: [],
+    };
+    const texturePoints: ClipMap = {
       inside: [],
       outside: [],
     };
 
-    const distances = input.map((point) => this.pointDistance(point));
+    const distances = input.points.map((point) => this.pointDistance(point));
 
     distances.forEach((dist, i) => {
-      points[dist >= 0 ? 'inside' : 'outside'].push(input[i]);
+      const placement = dist >= 0 ? 'inside' : 'outside';
+      points[placement].push(input.points[i]);
+      texturePoints[placement].push(input.texturePoints[i]);
     });
 
     switch (points.inside.length) {
       case 1: {
         // Clip triangle against ray of intersection
-        const newTriangle: Vector[] = [];
+        const newPoints: Vector[] = [];
+        const newTexturePoints: Vector[] = [];
 
         // Preserve inside point
-        newTriangle.push(points.inside[0]);
+        newPoints.push(points.inside[0]);
+        newTexturePoints.push(texturePoints.inside[0]);
 
         // Get new points based on ray intersection from preserved point and plane
-        points.outside.forEach((point) => {
-          const newPoint = this.intersectRay(newTriangle[0], point);
-          newPoint && newTriangle.push(newPoint);
+        points.outside.forEach((point, i) => {
+          const { ray: newPoint, t } =
+            this.intersectRay(newPoints[0], point) ?? {};
+          if (newPoint) {
+            newPoints.push(newPoint);
+            newTexturePoints.push(
+              Vector.add(
+                newTexturePoints[0],
+                Vector.scale(
+                  Vector.sub(texturePoints.outside[i], newTexturePoints[0]),
+                  t ?? 1
+                )
+              )
+            );
+          }
         });
 
-        newTriangles.push(newTriangle);
+        newTriangles.push(
+          new Triangle(newPoints, input.color, input.style, input.texturePoints)
+        );
         break;
       }
 
@@ -101,34 +128,63 @@ export class Plane {
          * Split quad formed by clipping into two triangles
          */
 
-        const newTriangle1 = input.map((point) => point.copy());
-        const newTriangle2 = input.map((point) => point.copy());
+        const newPoints1 = input.points.map((point) => point.copy());
+        const newPoints2 = input.points.map((point) => point.copy());
+
+        const newTexturePoints1 = input.texturePoints.map((point) =>
+          point.copy()
+        );
+        const newPointsTexture2 = input.texturePoints.map((point) =>
+          point.copy()
+        );
 
         // First triangle has two inside points and one at plane intersection
-        newTriangle1[0] = points.inside[0];
-        newTriangle1[1] = points.inside[1];
-        newTriangle1[2] = this.intersectRay(
-          points.inside[0],
-          points.outside[0]
-        ) as Vector;
+        newPoints1[0] = points.inside[0];
+        newPoints1[1] = points.inside[1];
+        const { ray: ray1, t: t1 } =
+          this.intersectRay(points.inside[0], points.outside[0]) ?? {};
+        newPoints1[2] = ray1 as Vector;
+
+        newTexturePoints1[0] = texturePoints.inside[0];
+        newTexturePoints1[1] = texturePoints.inside[1];
+        newTexturePoints1[1] = Vector.add(
+          texturePoints.inside[0],
+          Vector.scale(
+            Vector.sub(texturePoints.outside[0], texturePoints.inside[0]),
+            t1 ?? 1
+          )
+        );
 
         /**
          * Second triangle is defined by one inside point, the clipped point of the other triangle
          * and a new clipped point on the other side of the triangle
          */
-        newTriangle2[0] = points.inside[1];
-        newTriangle2[1] = newTriangle1[2];
-        newTriangle2[2] = this.intersectRay(
-          points.inside[1],
-          points.outside[0]
-        ) as Vector;
+        newPoints2[0] = points.inside[1];
+        newPoints2[1] = newPoints1[2];
+        newPoints2[2] = this.intersectRay(points.inside[1], points.outside[0])
+          ?.ray as Vector;
 
-        newTriangles.push(newTriangle1, newTriangle2);
+        newTexturePoints1[0] = texturePoints.inside[1];
+        newTexturePoints1[1] = texturePoints.inside[2];
+        newTexturePoints1[2] = Vector.add(
+          texturePoints.inside[0],
+          Vector.scale(
+            Vector.sub(texturePoints.outside[0], texturePoints.inside[1]),
+            t1 ?? 1
+          )
+        );
+
+        newTriangles.push(
+          new Triangle(newPoints1, input.color, input.style, newTexturePoints1)
+        );
+        newTriangles.push(
+          new Triangle(newPoints2, input.color, input.style, newPointsTexture2)
+        );
         break;
       }
 
       case 3: {
-        newTriangles.push(input.map((point) => point.copy()));
+        newTriangles.push(input);
         break;
       }
     }
