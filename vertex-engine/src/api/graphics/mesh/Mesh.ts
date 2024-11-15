@@ -1,4 +1,5 @@
 import { Vector } from '../../math/vector/Vector';
+import { Triangle } from '../triangle/Triangle';
 
 export type MeshStyle = 'stroke' | 'fill';
 
@@ -6,7 +7,7 @@ export class Mesh {
   constructor(
     private readonly _name: string,
     private readonly _vertices: Vector[],
-    private readonly _triangles: number[][],
+    private readonly _triangles: Triangle[],
     private _style: MeshStyle
   ) {}
 

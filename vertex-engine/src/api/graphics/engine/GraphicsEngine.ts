@@ -12,13 +12,14 @@ import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { Color } from '../color/Color';
+import { MeshData } from '../mesh/Mesh.types';
 
 export class GraphicsEngine {
   // TODO: Underscore all private class members
   private _ctx: CanvasRenderingContext2D | null;
   private projectionMatrix: Matrix;
   private camera: Camera;
-  private _meshes: Record<string, Mesh> = {};
+  private _meshData: Record<string, MeshData> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
 
@@ -81,7 +82,7 @@ export class GraphicsEngine {
       cameraEntity.body?.rotation.add(cameraEntity.body.forces.rotation);
     };
 
-    this._meshes = {};
+    this._meshData = {};
   }
 
   private geometry(entity: Entity) {
@@ -100,10 +101,8 @@ export class GraphicsEngine {
 
     if (!mesh) return;
 
-    mesh.triangles.forEach((modelPoints) => {
-      const _modelPoints = modelPoints.map((idx) => mesh.vertices[idx]);
-
-      const worldPoints = _modelPoints.map(
+    mesh.triangles.forEach((triangle) => {
+      const worldPoints = triangle.points.map(
         (point) => worldMatrix.mult(point.matrix).vector
       );
 
@@ -127,10 +126,17 @@ export class GraphicsEngine {
       );
 
       // I'm guessing a depth buffer would help with this?
-      const clippedTriangles = camera.frustrum.near.clipTriangle(viewPoints);
+      const clippedTriangles = camera.frustrum.near.clipTriangle(
+        new Triangle(
+          viewPoints,
+          triangle.color,
+          triangle.style,
+          triangle.texturePoints
+        )
+      );
 
-      clippedTriangles.forEach((points: Vector[]) => {
-        const projectedPoints = points.map(
+      clippedTriangles.forEach((triangle: Triangle) => {
+        const projectedPoints = triangle.points.map(
           (point) => projectionMatrix.mult(point.columnMatrix).vector
         );
 
@@ -145,7 +151,12 @@ export class GraphicsEngine {
         );
 
         toRaster.push({
-          triangle: new Triangle(perspectivePoints, '', mesh.style),
+          triangle: new Triangle(
+            perspectivePoints,
+            triangle.color,
+            triangle.style,
+            triangle.texturePoints
+          ),
           worldNormal,
           centroid: Vector.div(
             Vector.add(
@@ -170,16 +181,9 @@ export class GraphicsEngine {
           if (!_rasterObj) return;
           numNewTriangles--;
 
-          const clippedTriangles: Triangle[] = camera.frustrum[bound]
-            .clipTriangle(_rasterObj.triangle.points.filter((t) => t))
-            .map(
-              (points) =>
-                new Triangle(
-                  points,
-                  _rasterObj.triangle.color,
-                  _rasterObj.triangle.style
-                )
-            );
+          const clippedTriangles: Triangle[] = camera.frustrum[
+            bound
+          ].clipTriangle(_rasterObj.triangle);
 
           queue.push(
             ...clippedTriangles
@@ -254,16 +258,17 @@ export class GraphicsEngine {
   }
 
   async loadMesh(url: string, scale: Vector, style: MeshStyle) {
-    const meshExists = !!this._meshes[url];
+    const meshExists = !!this._meshData[url];
 
     if (!meshExists) {
       const res = await fetch(url);
       const file = await res.text();
 
-      const meshData = {
+      const meshData: MeshData = {
         name: '',
         vertices: [] as Vector[],
         triangles: [] as number[][],
+        style,
       };
 
       file.split('\n').forEach((line, i) => {
@@ -296,25 +301,21 @@ export class GraphicsEngine {
         }
       });
 
-      const mesh = new Mesh(
-        meshData.name,
-        meshData.vertices,
-        meshData.triangles,
-        style
-      );
-      this._meshes[url] = mesh;
+      this._meshData[url] = meshData;
     }
 
     return this.loadMeshFromCache(url, scale, style);
   }
 
   async loadMeshFromCache(url: string, scale: Vector, style: MeshStyle) {
-    const cachedMesh = this._meshes[url];
+    const cachedMesh = this._meshData[url];
 
     const min = new Vector(Infinity, Infinity, Infinity);
     const max = new Vector(-Infinity, -Infinity, -Infinity);
 
-    const meshData = {
+    const meshData: Omit<MeshData, 'style' | 'triangles'> & {
+      triangles: Triangle[];
+    } = {
       name: cachedMesh.name,
       vertices: cachedMesh.vertices.map(
         (v) =>
@@ -329,8 +330,17 @@ export class GraphicsEngine {
             1
           )
       ) as Vector[],
-      triangles: cachedMesh.triangles,
+      triangles: [],
     };
+
+    meshData.triangles = cachedMesh.triangles.map(
+      (points) =>
+        new Triangle(
+          points.map((idx) => meshData.vertices[idx]),
+          '',
+          style
+        )
+    );
 
     const boundingSphere = new Sphere(
       Vector.add(min, max).scale(1 / 2),
@@ -367,7 +377,7 @@ export class GraphicsEngine {
   }
 
   get meshes() {
-    return this._meshes;
+    return this._meshData;
   }
 
   get ctx() {

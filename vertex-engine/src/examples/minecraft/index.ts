@@ -7,7 +7,7 @@ import { PointLight } from '../../api/graphics/light/PointLight';
 import { SpotLight } from '../../api/graphics/light/SpotLight';
 import { Color } from '../../api/graphics/color/Color';
 
-export const initLightingExample = async (gameEngine: GameEngine) => {
+export const initMinecraftExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/cube.obj',

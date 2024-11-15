@@ -23,4 +23,5 @@ const gameEngine = new GameEngine({
 // examples.balls(gameEngine);
 // examples.twoBodyProblem(gameEngine);
 // examples.cubeMan(gameEngine);
-examples.lighting(gameEngine);
+// examples.lighting(gameEngine);
+examples.minecraft(gameEngine);
