@@ -96,7 +96,7 @@ export class Plane {
 
         // Preserve inside point
         newPoints.push(points.inside[0]);
-        newTexturePoints.push(texturePoints.inside[0]);
+        input.hasTexture && newTexturePoints.push(texturePoints.inside[0]);
 
         // Get new points based on ray intersection from preserved point and plane
         points.outside.forEach((point, i) => {
@@ -104,20 +104,22 @@ export class Plane {
             this.intersectRay(newPoints[0], point) ?? {};
           if (newPoint) {
             newPoints.push(newPoint);
-            newTexturePoints.push(
-              Vector.add(
-                newTexturePoints[0],
-                Vector.scale(
-                  Vector.sub(texturePoints.outside[i], newTexturePoints[0]),
-                  t ?? 1
+            // This nesting is getting janky :/
+            input.hasTexture &&
+              newTexturePoints.push(
+                Vector.add(
+                  newTexturePoints[0],
+                  Vector.scale(
+                    Vector.sub(texturePoints.outside[i], newTexturePoints[0]),
+                    t ?? 1
+                  )
                 )
-              )
-            );
+              );
           }
         });
 
         newTriangles.push(
-          new Triangle(newPoints, input.color, input.style, input.texturePoints)
+          new Triangle(newPoints, input.color, input.style, newTexturePoints)
         );
         break;
       }
@@ -145,15 +147,17 @@ export class Plane {
           this.intersectRay(points.inside[0], points.outside[0]) ?? {};
         newPoints1[2] = ray1 as Vector;
 
-        newTexturePoints1[0] = texturePoints.inside[0];
-        newTexturePoints1[1] = texturePoints.inside[1];
-        newTexturePoints1[1] = Vector.add(
-          texturePoints.inside[0],
-          Vector.scale(
-            Vector.sub(texturePoints.outside[0], texturePoints.inside[0]),
-            t1 ?? 1
-          )
-        );
+        if (input.hasTexture) {
+          newTexturePoints1[0] = texturePoints.inside[0];
+          newTexturePoints1[1] = texturePoints.inside[1];
+          newTexturePoints1[1] = Vector.add(
+            texturePoints.inside[0],
+            Vector.scale(
+              Vector.sub(texturePoints.outside[0], texturePoints.inside[0]),
+              t1 ?? 1
+            )
+          );
+        }
 
         /**
          * Second triangle is defined by one inside point, the clipped point of the other triangle
@@ -164,15 +168,17 @@ export class Plane {
         newPoints2[2] = this.intersectRay(points.inside[1], points.outside[0])
           ?.ray as Vector;
 
-        newTexturePoints1[0] = texturePoints.inside[1];
-        newTexturePoints1[1] = texturePoints.inside[2];
-        newTexturePoints1[2] = Vector.add(
-          texturePoints.inside[0],
-          Vector.scale(
-            Vector.sub(texturePoints.outside[0], texturePoints.inside[1]),
-            t1 ?? 1
-          )
-        );
+        if (input.hasTexture) {
+          newTexturePoints1[0] = texturePoints.inside[1];
+          newTexturePoints1[1] = texturePoints.inside[2];
+          newTexturePoints1[2] = Vector.add(
+            texturePoints.inside[0],
+            Vector.scale(
+              Vector.sub(texturePoints.outside[0], texturePoints.inside[1]),
+              t1 ?? 1
+            )
+          );
+        }
 
         newTriangles.push(
           new Triangle(newPoints1, input.color, input.style, newTexturePoints1)

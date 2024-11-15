@@ -28,4 +28,8 @@ export class Triangle {
   get texturePoints() {
     return this._texturePoints;
   }
+
+  get hasTexture() {
+    return !!this._texturePoints.length;
+  }
 }
