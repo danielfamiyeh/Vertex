@@ -14,7 +14,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
       textures: [
         { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
       ],
-      scale: Vector.uniform(2, 3),
+      scale: Vector.uniform(5, 3),
       style: 'stroke',
     },
     physics: {

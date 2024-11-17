@@ -257,6 +257,9 @@ export class GraphicsEngine {
   async loadMesh(url: string, scale: Vector, style: MeshStyle) {
     const meshExists = !!this._meshData[url];
 
+    const min = new Vector(Infinity, Infinity, Infinity);
+    const max = new Vector(-Infinity, -Infinity, -Infinity);
+
     if (!meshExists) {
       const res = await fetch(url);
       const file = await res.text();
@@ -275,7 +278,14 @@ export class GraphicsEngine {
           meshData.name = parts[0];
         } else if (type === 'v') {
           meshData.vertices.push(
-            new Vector(...parts.map((c) => parseFloat(c)))
+            new Vector(
+              ...parts.map((c, i) => {
+                const comp = parseFloat(c);
+                if (comp < min.comps[i]) min.comps[i] = comp;
+                if (comp > max.comps[i]) max.comps[i] = comp;
+                return comp;
+              })
+            )
           );
         } else if (type === 'f') {
           let [p1, p2, p3] = line.slice(2).split(' ');
@@ -296,6 +306,12 @@ export class GraphicsEngine {
             parseInt(p3) - 1,
           ]);
         }
+      });
+
+      const modelMidpoint = min.comps.map((c, i) => (c + max.comps[i]) / 2);
+
+      meshData.vertices.forEach((v) => {
+        v.comps = v.comps.map((c, i) => c - modelMidpoint[i]);
       });
 
       this._meshData[url] = meshData;
