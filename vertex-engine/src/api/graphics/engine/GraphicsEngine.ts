@@ -22,6 +22,7 @@ export class GraphicsEngine {
   private _meshData: Record<string, MeshData> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
+  private _textures: Record<string, HTMLImageElement> = {};
 
   static angle = 180;
 
@@ -209,9 +210,7 @@ export class GraphicsEngine {
 
     raster &&
       raster.forEach((rasterObj) => {
-        let lightCount = 0;
         let colorComps = [0, 0, 0];
-        let colorHex = '';
 
         const { centroid, worldNormal, triangle } = rasterObj;
 
@@ -222,11 +221,9 @@ export class GraphicsEngine {
             centroid.copy()
           );
           color.comps.forEach((val, i) => (colorComps[i] += val));
-          if (colorComps.reduce((a, b) => a + b, 0) > 0) lightCount++;
         });
 
         colorComps = colorComps.map((val) => Math.min(val, 255));
-        colorHex = `#${new Color(colorComps, 'rgb').toHex()}`;
         triangle.color = `#${new Color(colorComps, 'rgb').toHex()}`;
       });
     return raster;
@@ -329,7 +326,7 @@ export class GraphicsEngine {
             }),
             1
           )
-      ) as Vector[],
+      ),
       triangles: [],
     };
 
@@ -342,6 +339,7 @@ export class GraphicsEngine {
         )
     );
 
+    // TODO: lmao there's gotta be something here that's causing the collision detection to mess up
     const boundingSphere = new Sphere(
       Vector.add(min, max).scale(1 / 2),
       Vector.sub(max, min).mag / 2
@@ -357,12 +355,38 @@ export class GraphicsEngine {
     return { mesh, boundingSphere };
   }
 
+  async loadTexture(url: string, key = url) {
+    const textureExists = !!this._textures[key];
+    if (textureExists) return this._textures[key];
+
+    const res = await fetch(key);
+    const file = await res.blob();
+
+    const base64 = await new Promise<string>((onSuccess, onError) => {
+      try {
+        const reader = new FileReader();
+        reader.onload = function () {
+          onSuccess(this.result as string);
+        };
+        reader.readAsDataURL(file);
+      } catch (e) {
+        onError(e);
+      }
+    });
+
+    const image = new Image();
+    image.src = base64;
+
+    this._textures[key] = image;
+  }
+
   render(entities: Record<string, Entity>) {
     const raster: RasterObject[] = [];
 
     Object.keys(entities).forEach((id) => {
       const entity = entities[id];
       this.render(entity.children);
+
       const _raster = this.rasterize(this.geometry(entity));
       _raster && raster.push(..._raster);
     });

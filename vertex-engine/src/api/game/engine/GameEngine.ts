@@ -61,6 +61,7 @@ export class GameEngine {
         mesh: string;
         scale?: Vector;
         style?: MeshStyle;
+        textures?: { key: string; url: string }[];
       };
       physics?: Omit<RigidBodyOptions, 'id'>;
     } = {}
@@ -73,15 +74,30 @@ export class GameEngine {
     if (physics)
       entity.body = new RigidBody({ parentEntity: entity, ...physics });
 
-    if (graphics?.mesh)
+    if (graphics?.mesh) {
       await this.loadEntityMesh(
         entity,
         graphics.mesh,
         entity.scale,
         graphics.style ?? 'fill'
       );
+    }
+
+    if (graphics?.textures) {
+      await this.loadEntityTextures(entity, graphics.textures);
+    }
 
     return entity;
+  }
+
+  async loadEntityTextures(
+    entity: Entity,
+    textureSrcMap: { key: string; url: string }[]
+  ) {
+    textureSrcMap.map(async ({ key, url }) => {
+      await this.graphics.loadTexture(url, key);
+      entity.mesh?.textures.push(key);
+    });
   }
 
   async loadEntityMesh(

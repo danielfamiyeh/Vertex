@@ -10,7 +10,10 @@ import { Color } from '../../api/graphics/color/Color';
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
+      textures: [
+        { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
+      ],
       scale: Vector.uniform(2, 3),
       style: 'stroke',
     },
@@ -21,7 +24,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
 
   const sphere2 = await gameEngine.createEntity('sphere', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
       scale: Vector.uniform(2, 3),
     },
     physics: {
@@ -31,7 +34,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
 
   const sphere3 = await gameEngine.createEntity('sphere', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
       scale: Vector.uniform(2, 3),
     },
     physics: {
@@ -77,7 +80,10 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   //   20
   // );
 
+  if (cube.mesh) cube.mesh.activeTexture = 'cubeMain';
+
   gameEngine.addToScene({ allSpheres });
 
+  console.log({ gameEngine });
   gameEngine.start();
 };
