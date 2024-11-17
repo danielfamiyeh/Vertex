@@ -268,6 +268,8 @@ export class GraphicsEngine {
         name: '',
         vertices: [] as Vector[],
         triangles: [] as number[][],
+        texturePoints: [] as Vector[],
+        textureIndexes: [] as number[][],
         style,
       };
 
@@ -287,24 +289,39 @@ export class GraphicsEngine {
               })
             )
           );
+        } else if (type === 'vt') {
+          const [u, v] = parts.filter((tc) => tc).map((tc) => parseFloat(tc));
+          const texturePoint = new Vector(u, v);
+          meshData.texturePoints.push(texturePoint);
         } else if (type === 'f') {
-          let [p1, p2, p3] = line.slice(2).split(' ');
-          if (!p1 || !p2 || !p3) {
+          let [f1, f2, f3] = line.slice(2).split(' ');
+          if (!f1 || !f2 || !f3) {
             throw new Error(
               `Error parsing face on line ${i + 1} of file ${url}.`
             );
           }
-
-          if (p1.includes('/')) {
-            [p1] = p1.split('/');
-            [p2] = p2.split('/');
-            [p3] = p3.split('/');
+          let p1, p2, p3, t1, t2, t3;
+          if (f1.includes('/')) {
+            [p1, t1] = f1.split('/');
+            [p2, t2] = f2.split('/');
+            [p3, t3] = f3.split('/');
           }
-          meshData.triangles.push([
-            parseInt(p1) - 1,
-            parseInt(p2) - 1,
-            parseInt(p3) - 1,
-          ]);
+
+          if (p1 && p2 && p3) {
+            meshData.triangles.push([
+              parseInt(p1) - 1,
+              parseInt(p2) - 1,
+              parseInt(p3) - 1,
+            ]);
+          }
+
+          if (t1 && t2 && t3) {
+            meshData.textureIndexes.push([
+              parseInt(t1) - 1,
+              parseInt(t2) - 1,
+              parseInt(t3) - 1,
+            ]);
+          }
         }
       });
 
@@ -343,15 +360,20 @@ export class GraphicsEngine {
             1
           )
       ),
+      texturePoints: cachedMesh.texturePoints,
+      textureIndexes: cachedMesh.textureIndexes,
       triangles: [],
     };
 
     meshData.triangles = cachedMesh.triangles.map(
-      (points) =>
+      (points, i) =>
         new Triangle(
           points.map((idx) => meshData.vertices[idx]),
           '',
-          style
+          style,
+          cachedMesh.textureIndexes[i].map(
+            (idx) => cachedMesh.texturePoints[idx]
+          )
         )
     );
 
