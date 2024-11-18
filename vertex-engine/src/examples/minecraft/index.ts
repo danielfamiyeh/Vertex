@@ -19,6 +19,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     },
     physics: {
       position: new Vector(0, 0, 5),
+      // rotation: new Vector(0, 90, 0),
     },
   });
 
@@ -44,12 +45,12 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
 
   const allSpheres = new Entity('allSpheres')
     .setRigidBody()
-    .addChildren({ cube, sphere2, sphere3 });
+    .addChildren({ cube });
 
-  allSpheres.body?.addForce('rotation', new Vector(0, 2, 0));
-  allSpheres.body?.addTransform('rotate', (_, self) =>
-    self.rotation.add(self.forces.rotation)
-  );
+  // allSpheres.body?.addForce('rotation', new Vector(0, 2, 0));
+  // allSpheres.body?.addTransform('rotate', (_, self) =>
+  //   self.rotation.add(self.forces.rotation)
+  // );
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
     new Color([128, 0, 0], 'rgb')

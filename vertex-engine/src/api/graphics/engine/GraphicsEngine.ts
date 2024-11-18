@@ -14,6 +14,19 @@ import { GameEngine } from '../../game/engine/GameEngine';
 import { Color } from '../color/Color';
 import { MeshData } from '../mesh/Mesh.types';
 
+let printed = 0;
+const printOne = (msg: any) => {
+  // if (printed < 11) {
+  //   console.log(msg);
+  //   printed += 1;
+  // }
+
+  if (!printed) {
+    console.log(msg);
+    printed = 1;
+  }
+};
+
 export class GraphicsEngine {
   // TODO: Underscore all private class members
   private _ctx: CanvasRenderingContext2D | null;
@@ -212,6 +225,11 @@ export class GraphicsEngine {
       raster.forEach((rasterObj) => {
         let colorComps = [0, 0, 0];
 
+        if (printed < 11) {
+          console.log(rasterObj.triangle.rasterize());
+          printed++;
+        }
+
         const { centroid, worldNormal, triangle } = rasterObj;
 
         lightIds.forEach((lightId) => {
@@ -236,6 +254,8 @@ export class GraphicsEngine {
 
     raster.forEach((rasterObj) => {
       if (!ctx) return;
+
+      printOne(rasterObj.triangle);
 
       const {
         points: [p1, p2, p3],
