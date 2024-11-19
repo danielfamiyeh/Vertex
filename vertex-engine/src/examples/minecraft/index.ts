@@ -33,22 +33,22 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     },
   });
 
-  const sphere3 = await gameEngine.createEntity('sphere', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
-      scale: Vector.uniform(2, 3),
-    },
-    physics: {
-      position: new Vector(-10, 20, 5),
-    },
-  });
+  console.log({ cube, sphere2 });
 
-  const allSpheres = new Entity('allSpheres')
-    .setRigidBody()
-    .addChildren({ cube });
+  // const sphere3 = await gameEngine.createEntity('sphere', {
+  //   graphics: {
+  //     mesh: 'http://127.0.0.1:8080/models/sphere.obj',
+  //     scale: Vector.uniform(2, 3),
+  //   },
+  //   physics: {
+  //     position: new Vector(-10, 20, 5),
+  //   },
+  // });
 
-  // allSpheres.body?.addForce('rotation', new Vector(0, 2, 0));
-  // allSpheres.body?.addTransform('rotate', (_, self) =>
+  const shapes = new Entity('shapes').setRigidBody().addChildren({ cube });
+
+  // shapes.body?.addForce('rotation', new Vector(0, 2, 0));
+  // shapes.body?.addTransform('rotate', (_, self) =>
   //   self.rotation.add(self.forces.rotation)
   // );
 
@@ -83,7 +83,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
 
   if (cube.mesh) cube.mesh.activeTexture = 'cubeMain';
 
-  gameEngine.addToScene({ allSpheres });
+  gameEngine.addToScene({ shapes });
 
   console.log({ gameEngine });
   gameEngine.start();

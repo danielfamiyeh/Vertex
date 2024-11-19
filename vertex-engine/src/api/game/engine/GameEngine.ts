@@ -79,7 +79,8 @@ export class GameEngine {
         entity,
         graphics.mesh,
         entity.scale,
-        graphics.style ?? 'fill'
+        graphics.style ?? 'fill',
+        !!graphics.textures?.length
       );
     }
 
@@ -104,12 +105,14 @@ export class GameEngine {
     entity: Entity,
     url: string,
     scale: Vector,
-    style: MeshStyle
+    style: MeshStyle,
+    hasTextures: boolean
   ) {
     const { mesh, boundingSphere } = await this.graphics.loadMesh(
       url,
       scale,
-      style
+      style,
+      hasTextures
     );
 
     entity.mesh = mesh;

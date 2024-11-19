@@ -16,14 +16,9 @@ import { MeshData } from '../mesh/Mesh.types';
 
 let printed = 0;
 const printOne = (msg: any) => {
-  // if (printed < 11) {
-  //   console.log(msg);
-  //   printed += 1;
-  // }
-
-  if (!printed) {
+  if (printed < 11) {
     console.log(msg);
-    printed = 1;
+    printed += 1;
   }
 };
 
@@ -226,7 +221,6 @@ export class GraphicsEngine {
         let colorComps = [0, 0, 0];
 
         if (printed < 11) {
-          console.log(rasterObj.triangle.rasterize());
           printed++;
         }
 
@@ -255,8 +249,6 @@ export class GraphicsEngine {
     raster.forEach((rasterObj) => {
       if (!ctx) return;
 
-      printOne(rasterObj.triangle);
-
       const {
         points: [p1, p2, p3],
         color,
@@ -274,7 +266,12 @@ export class GraphicsEngine {
     });
   }
 
-  async loadMesh(url: string, scale: Vector, style: MeshStyle) {
+  async loadMesh(
+    url: string,
+    scale: Vector,
+    style: MeshStyle,
+    hasTextures: boolean
+  ) {
     const meshExists = !!this._meshData[url];
 
     const min = new Vector(Infinity, Infinity, Infinity);
@@ -309,7 +306,7 @@ export class GraphicsEngine {
               })
             )
           );
-        } else if (type === 'vt') {
+        } else if (type === 'vt' && hasTextures) {
           const [u, v] = parts.filter((tc) => tc).map((tc) => parseFloat(tc));
           const texturePoint = new Vector(u, v);
           meshData.texturePoints.push(texturePoint);
@@ -354,10 +351,15 @@ export class GraphicsEngine {
       this._meshData[url] = meshData;
     }
 
-    return this.loadMeshFromCache(url, scale, style);
+    return this.loadMeshFromCache(url, scale, style, hasTextures);
   }
 
-  async loadMeshFromCache(url: string, scale: Vector, style: MeshStyle) {
+  async loadMeshFromCache(
+    url: string,
+    scale: Vector,
+    style: MeshStyle,
+    hasTextures: boolean
+  ) {
     const cachedMesh = this._meshData[url];
 
     const min = new Vector(Infinity, Infinity, Infinity);
@@ -391,9 +393,11 @@ export class GraphicsEngine {
           points.map((idx) => meshData.vertices[idx]),
           '',
           style,
-          cachedMesh.textureIndexes[i].map(
-            (idx) => cachedMesh.texturePoints[idx]
-          )
+          hasTextures
+            ? cachedMesh.textureIndexes[i].map(
+                (idx) => cachedMesh.texturePoints[idx]
+              )
+            : []
         )
     );
 
