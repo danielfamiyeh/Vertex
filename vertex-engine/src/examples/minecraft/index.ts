@@ -4,47 +4,48 @@ import { Entity } from '../../api/game/entity/Entity';
 import { AmbientLight } from '../../api/graphics/light/AmbientLight';
 import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
 import { PointLight } from '../../api/graphics/light/PointLight';
-import { SpotLight } from '../../api/graphics/light/SpotLight';
 import { Color } from '../../api/graphics/color/Color';
 
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
-      scale: Vector.uniform(2, 3),
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
+      textures: [
+        { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
+      ],
+      scale: Vector.uniform(5, 3),
       style: 'stroke',
     },
     physics: {
-      position: new Vector(0, 0, 5),
+      position: new Vector(0, 5, 5),
+      // rotation: new Vector(0, 90, 0),
     },
   });
 
-  const sphere2 = await gameEngine.createEntity('sphere', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
-      scale: Vector.uniform(2, 3),
-    },
-    physics: {
-      position: new Vector(-20, 0, 5),
-    },
-  });
+  // const sphere2 = await gameEngine.createEntity('sphere', {
+  //   graphics: {
+  //     mesh: 'http://127.0.0.1:8080/models/sphere.obj',
+  //     scale: Vector.uniform(2, 3),
+  //   },
+  //   physics: {
+  //     position: new Vector(-20, 0, 5),
+  //   },
+  // });
 
-  const sphere3 = await gameEngine.createEntity('sphere', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
-      scale: Vector.uniform(2, 3),
-    },
-    physics: {
-      position: new Vector(-10, 20, 5),
-    },
-  });
+  // const sphere3 = await gameEngine.createEntity('sphere', {
+  //   graphics: {
+  //     mesh: 'http://127.0.0.1:8080/models/sphere.obj',
+  //     scale: Vector.uniform(2, 3),
+  //   },
+  //   physics: {
+  //     position: new Vector(-10, 20, 5),
+  //   },
+  // });
 
-  const allSpheres = new Entity('allSpheres')
-    .setRigidBody()
-    .addChildren({ cube, sphere2, sphere3 });
+  const shapes = new Entity('shapes').setRigidBody().addChildren({ cube });
 
-  allSpheres.body?.addForce('rotation', new Vector(0, 2, 0));
-  allSpheres.body?.addTransform('rotate', (_, self) =>
+  shapes.body?.addForce('rotation', new Vector(2, 1, 0));
+  shapes.body?.addTransform('rotate', (_, self) =>
     self.rotation.add(self.forces.rotation)
   );
 
@@ -77,7 +78,10 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   //   20
   // );
 
-  gameEngine.addToScene({ allSpheres });
+  if (cube.mesh) cube.mesh.activeTexture = 'cubeMain';
 
+  gameEngine.addToScene({ shapes });
+
+  console.log({ gameEngine });
   gameEngine.start();
 };

@@ -9,6 +9,45 @@ export class Triangle {
     private _texturePoints: Vector[] = []
   ) {}
 
+  subTriangleAreas(p: Vector) {
+    const {
+      points: [p0, p1, p2],
+    } = this;
+    return [
+      0.5 *
+        Math.abs(
+          p.x * (p1.y - p2.y) + p1.x * (p2.y - p.y) + p2.x * (p.y - p1.y)
+        ),
+      0.5 *
+        Math.abs(
+          p0.x * (p.y - p2.y) + p.x * (p2.y - p0.y) + p2.x * (p0.y - p.y)
+        ),
+      0.5 *
+        Math.abs(
+          p0.x * (p1.y - p.y) + p1.x * (p.y - p0.y) + p.x * (p0.y - p1.y)
+        ),
+    ];
+  }
+
+  barycentricCoordinates(p: Vector) {
+    const totalArea = this.area;
+    const subTriangleAreas = this.subTriangleAreas(p);
+
+    return subTriangleAreas.map((area) => area / totalArea);
+  }
+
+  get area() {
+    const {
+      points: [p0, p1, p2],
+    } = this;
+    return (
+      0.5 *
+      Math.abs(
+        p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y)
+      )
+    );
+  }
+
   get points() {
     return this._points;
   }

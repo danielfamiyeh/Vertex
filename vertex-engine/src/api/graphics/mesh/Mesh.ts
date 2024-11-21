@@ -4,6 +4,9 @@ import { Triangle } from '../triangle/Triangle';
 export type MeshStyle = 'stroke' | 'fill';
 
 export class Mesh {
+  private _textures: string[] = [];
+  private _activeTexture = '';
+
   constructor(
     private readonly _name: string,
     private readonly _vertices: Vector[],
@@ -21,6 +24,18 @@ export class Mesh {
 
   get name() {
     return this._name;
+  }
+
+  get textures() {
+    return this._textures;
+  }
+
+  get activeTexture() {
+    return this._activeTexture;
+  }
+
+  set activeTexture(activeTexture: string) {
+    this._activeTexture = activeTexture;
   }
 
   get style() {

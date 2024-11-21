@@ -5,5 +5,7 @@ export type MeshData = {
   name: string;
   vertices: Vector[];
   triangles: number[][];
+  texturePoints: Vector[];
+  textureIndexes: number[][];
   style: MeshStyle;
 };
