@@ -44,7 +44,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
 
   const shapes = new Entity('shapes').setRigidBody().addChildren({ cube });
 
-  shapes.body?.addForce('rotation', new Vector(2, 0, 0));
+  shapes.body?.addForce('rotation', new Vector(2, 1, 0));
   shapes.body?.addTransform('rotate', (_, self) =>
     self.rotation.add(self.forces.rotation)
   );

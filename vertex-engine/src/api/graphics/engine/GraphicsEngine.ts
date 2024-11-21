@@ -304,7 +304,7 @@ export class GraphicsEngine {
               ctx.drawImage(
                 this._textures[activeTexture],
                 uvInterpolated.x * naturalWidth,
-                uvInterpolated.y * naturalHeight,
+                (1 - uvInterpolated.y) * naturalHeight,
                 1,
                 1,
                 x,
