@@ -48,7 +48,7 @@ export class GraphicsEngine {
       options
     );
 
-    const { projectionMatrix, zOffset } = Matrix.projectionMatrix(
+    const { projectionMatrix } = Matrix.projectionMatrix(
       _canvas,
       _options.camera.near,
       _options.camera.far,
@@ -159,6 +159,12 @@ export class GraphicsEngine {
             )
         );
 
+        // perspectivePoints.forEach((point) => {
+        //   // NDC to screen
+        //   point.x *= this.canvas.width / 2;
+        //   point.y *= this.canvas.height / 2;
+        // });
+
         toRaster.push({
           triangle: new Triangle(
             perspectivePoints,
@@ -174,6 +180,7 @@ export class GraphicsEngine {
             ),
             3
           ),
+          activeTexture: mesh.activeTexture,
         });
       });
     });
@@ -201,6 +208,7 @@ export class GraphicsEngine {
                 triangle: t,
                 worldNormal: _rasterObj.worldNormal,
                 centroid: _rasterObj.centroid,
+                activeTexture: mesh.activeTexture,
               }))
           );
         }
@@ -246,23 +254,77 @@ export class GraphicsEngine {
 
     const { ctx } = this;
 
-    raster.forEach((rasterObj) => {
+    raster.forEach(({ triangle, activeTexture }) => {
       if (!ctx) return;
 
       const {
         points: [p1, p2, p3],
         color,
         style,
-      } = rasterObj.triangle;
+      } = triangle;
 
-      ctx[`${style}Style`] = color;
+      if (triangle.hasTexture) {
+        const texture = this._textures[activeTexture];
+        const { naturalWidth, naturalHeight } = texture;
 
-      ctx?.beginPath();
-      ctx?.moveTo(p1.x, -p1.y);
-      ctx?.lineTo(p2.x, -p2.y);
-      ctx?.lineTo(p3.x, -p3.y);
-      ctx?.lineTo(p1.x, -p1.y);
-      ctx[style]();
+        const bounds = {
+          xMin: Math.min(p1.x, p2.x, p3.x),
+          xMax: Math.max(p1.x, p2.x, p3.x),
+          yMin: Math.min(p1.y, p2.y, p3.y),
+          yMax: Math.max(p1.y, p2.y, p3.y),
+        };
+
+        for (let x = bounds.xMin; x <= bounds.xMax; x++) {
+          for (let y = bounds.yMin; y <= bounds.yMax; y++) {
+            const barycentricCoordinates = triangle.barycentricCoordinates(
+              new Vector(x, y)
+            );
+            const pointLiesInTriangle =
+              Math.abs(barycentricCoordinates.reduce((a, b) => a + b, 0) - 1) <=
+              1e-6;
+
+            if (pointLiesInTriangle) {
+              const uvInterpolated = Vector.scale(
+                triangle.texturePoints[0],
+                barycentricCoordinates[0]
+              )
+                .add(
+                  Vector.scale(
+                    triangle.texturePoints[1],
+                    barycentricCoordinates[1]
+                  )
+                )
+                .add(
+                  Vector.scale(
+                    triangle.texturePoints[2],
+                    barycentricCoordinates[2]
+                  )
+                );
+
+              ctx.drawImage(
+                this._textures[activeTexture],
+                uvInterpolated.x * naturalWidth,
+                uvInterpolated.y * naturalHeight,
+                1,
+                1,
+                x,
+                -y,
+                1,
+                1
+              );
+            }
+          }
+        }
+      } else {
+        ctx[`${style}Style`] = color;
+
+        ctx?.beginPath();
+        ctx?.moveTo(p1.x, -p1.y);
+        ctx?.lineTo(p2.x, -p2.y);
+        ctx?.lineTo(p3.x, -p3.y);
+        ctx?.lineTo(p1.x, -p1.y);
+        ctx[style]();
+      }
     });
   }
 
@@ -421,23 +483,8 @@ export class GraphicsEngine {
     const textureExists = !!this._textures[key];
     if (textureExists) return this._textures[key];
 
-    const res = await fetch(key);
-    const file = await res.blob();
-
-    const base64 = await new Promise<string>((onSuccess, onError) => {
-      try {
-        const reader = new FileReader();
-        reader.onload = function () {
-          onSuccess(this.result as string);
-        };
-        reader.readAsDataURL(file);
-      } catch (e) {
-        onError(e);
-      }
-    });
-
     const image = new Image();
-    image.src = base64;
+    image.src = url;
 
     this._textures[key] = image;
   }

@@ -22,4 +22,5 @@ export type RasterObject = {
   triangle: Triangle;
   worldNormal: Vector;
   centroid: Vector;
+  activeTexture: string;
 };

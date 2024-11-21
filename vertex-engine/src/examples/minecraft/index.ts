@@ -4,7 +4,6 @@ import { Entity } from '../../api/game/entity/Entity';
 import { AmbientLight } from '../../api/graphics/light/AmbientLight';
 import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
 import { PointLight } from '../../api/graphics/light/PointLight';
-import { SpotLight } from '../../api/graphics/light/SpotLight';
 import { Color } from '../../api/graphics/color/Color';
 
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
@@ -18,22 +17,20 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
       style: 'stroke',
     },
     physics: {
-      position: new Vector(0, 0, 5),
+      position: new Vector(0, 5, 5),
       // rotation: new Vector(0, 90, 0),
     },
   });
 
-  const sphere2 = await gameEngine.createEntity('sphere', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
-      scale: Vector.uniform(2, 3),
-    },
-    physics: {
-      position: new Vector(-20, 0, 5),
-    },
-  });
-
-  console.log({ cube, sphere2 });
+  // const sphere2 = await gameEngine.createEntity('sphere', {
+  //   graphics: {
+  //     mesh: 'http://127.0.0.1:8080/models/sphere.obj',
+  //     scale: Vector.uniform(2, 3),
+  //   },
+  //   physics: {
+  //     position: new Vector(-20, 0, 5),
+  //   },
+  // });
 
   // const sphere3 = await gameEngine.createEntity('sphere', {
   //   graphics: {
@@ -47,10 +44,10 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
 
   const shapes = new Entity('shapes').setRigidBody().addChildren({ cube });
 
-  // shapes.body?.addForce('rotation', new Vector(0, 2, 0));
-  // shapes.body?.addTransform('rotate', (_, self) =>
-  //   self.rotation.add(self.forces.rotation)
-  // );
+  shapes.body?.addForce('rotation', new Vector(2, 0, 0));
+  shapes.body?.addTransform('rotate', (_, self) =>
+    self.rotation.add(self.forces.rotation)
+  );
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
     new Color([128, 0, 0], 'rgb')
