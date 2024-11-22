@@ -50,25 +50,25 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   );
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
-    new Color([128, 0, 0], 'rgb')
+    new Color([1, 0, 0], 'rgb')
   );
 
-  gameEngine.graphics.lights.directional = new DirectionalLight(
-    new Color([0, 255, 0], 'rgb'),
-    new Vector(1, 0, 0)
-  );
+  // gameEngine.graphics.lights.directional = new DirectionalLight(
+  //   new Color([0, 255, 0], 'rgb'),
+  //   new Vector(1, 0, 0)
+  // );
 
-  gameEngine.graphics.lights.point = new PointLight(
-    new Vector(-10, 0, 0),
-    new Color([255, 255, 255], 'rgb'),
-    1,
-    0.15
-  );
+  // gameEngine.graphics.lights.point = new PointLight(
+  //   new Vector(-10, 0, 0),
+  //   new Color([255, 255, 255], 'rgb'),
+  //   1,
+  //   0.15
+  // );
 
-  gameEngine.graphics.lights.directional2 = new DirectionalLight(
-    new Color([0, 0, 255], 'rgb'),
-    new Vector(-1, 0, 0)
-  );
+  // gameEngine.graphics.lights.directional2 = new DirectionalLight(
+  //   new Color([0, 0, 255], 'rgb'),
+  //   new Vector(-1, 0, 0)
+  // );
 
   // gameEngine.graphics.lights.SpotLight = new SpotLight(
   //   new Color([0, 0, 255], 'rgb'),
