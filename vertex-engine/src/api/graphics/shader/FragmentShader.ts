@@ -1,3 +1,4 @@
+import { Entity } from '@vertex/api/game/entity/Entity';
 import { Vector } from '../../math/vector/Vector';
 import { printOne } from '../engine/GraphicsEngine';
 import {
@@ -5,7 +6,6 @@ import {
   RasterObject,
 } from '../engine/GraphicsEngine.types';
 import { Light } from '../light/Light';
-import { Triangle } from '../triangle/Triangle';
 import { Fragment } from './FragmentShader.types';
 
 export class FragmentShader implements GraphicsPipelineStage {
@@ -40,12 +40,13 @@ export class FragmentShader implements GraphicsPipelineStage {
   }
 
   compute(
-    triangleData: any,
+    triangleData: Entity | Fragment[] | RasterObject[],
     variables: Record<string, any> = {}
-  ): (RasterObject | Triangle)[] | null {
-    triangleData.forEach((fragment: Fragment) => {
+  ) {
+    (<Fragment[]>triangleData).forEach((fragment: Fragment) => {
       FragmentShader.illuminate(fragment, variables.lights);
     });
+
     return triangleData;
   }
 }

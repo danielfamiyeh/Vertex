@@ -17,7 +17,7 @@ import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { Color } from '../color/Color';
 import { MeshData } from '../mesh/Mesh.types';
-import { FragmentShader, VertexShader } from '../shader';
+import { Fragment, FragmentShader, VertexShader } from '../shader';
 import { Rasterizer } from '../rasterizer/Rasterizer';
 
 let printed = 0;
@@ -320,9 +320,8 @@ export class GraphicsEngine {
           rasterizerOutput,
           { lights: Object.values(this._lights) }
         );
-
         fragmentOutput.forEach(
-          (fragment) =>
+          (fragment: Fragment) =>
             this._ctx && FragmentShader.drawPixel(fragment, this._ctx)
         );
       }

@@ -3,9 +3,12 @@ import { Matrix } from '../../math/matrix/Matrix';
 import { Vector } from '../../math/vector/Vector';
 import { Camera } from '../camera/Camera';
 import { cameraBounds } from '../camera/Camera.utils';
-import { RasterObject } from '../rasterizer/Rasterizer.types';
 import { Triangle } from '../triangle/Triangle';
-import { GraphicsPipelineStage } from '../engine/GraphicsEngine.types';
+import {
+  GraphicsPipelineStage,
+  RasterObject,
+} from '../engine/GraphicsEngine.types';
+import { printOne } from '../engine/GraphicsEngine';
 
 export class VertexShader implements GraphicsPipelineStage {
   constructor(
@@ -25,8 +28,8 @@ export class VertexShader implements GraphicsPipelineStage {
       entity.body?.position
     );
 
-    const raster: RasterObject[] = [];
-    const toRaster: RasterObject[] = [];
+    const preFragments: RasterObject[] = [];
+    const toPreFragments: RasterObject[] = [];
 
     const { viewMatrix } = Matrix.viewMatrix(this._camera);
 
@@ -50,9 +53,9 @@ export class VertexShader implements GraphicsPipelineStage {
       // TODO: Use Camera.shouldCull
       if (raySimilarity < 0) return;
 
-      const viewPoints = worldPoints.map(
-        (point) => point.rowMatrix.mult(viewMatrix).vector
-      );
+      const viewPoints = worldPoints
+        .map((point) => point.rowMatrix.mult(viewMatrix).vector)
+        .map((v) => v.slice(0, 3));
 
       // I'm guessing a depth buffer would help with this?
       const clippedTriangles = this._camera.frustrum.near.clipTriangle(
@@ -64,9 +67,11 @@ export class VertexShader implements GraphicsPipelineStage {
         )
       );
 
-      clippedTriangles.forEach((triangle: Triangle) => {
-        const projectedPoints = triangle.points.map(
-          (point) => this._projectionMatrix.mult(point.columnMatrix).vector
+      clippedTriangles.forEach((_triangle: Triangle) => {
+        const projectedPoints = _triangle.points.map(
+          (point) =>
+            this._projectionMatrix.mult(Vector.extended(point, 1).columnMatrix)
+              .vector
         );
 
         const perspectivePoints = projectedPoints.map((point) =>
@@ -83,12 +88,12 @@ export class VertexShader implements GraphicsPipelineStage {
         //   point.y *= this.canvasH_canvasHeight / 2;
         // });
 
-        toRaster.push({
+        toPreFragments.push({
           triangle: new Triangle(
             perspectivePoints,
-            triangle.color,
-            triangle.style,
-            triangle.texturePoints
+            _triangle.color,
+            _triangle.style,
+            _triangle.texturePoints
           ),
           worldNormal,
           centroid: Vector.add(
@@ -101,38 +106,38 @@ export class VertexShader implements GraphicsPipelineStage {
     });
 
     // Clipping routine
-    toRaster.forEach((rasterObj) => {
-      const queue: RasterObject[] = [];
-      queue.push(rasterObj);
-      let numNewTriangles = 1;
+    // toPreFragments.forEach((rasterObj) => {
+    //   const queue: RasterObject[] = [];
+    //   queue.push(rasterObj);
+    //   let numNewTriangles = 1;
 
-      cameraBounds.forEach((bound) => {
-        while (numNewTriangles > 0) {
-          const _rasterObj = queue.pop();
-          if (!_rasterObj) return;
-          numNewTriangles--;
+    //   cameraBounds.forEach((bound) => {
+    //     while (numNewTriangles > 0) {
+    //       const _rasterObj = queue.pop();
+    //       if (!_rasterObj) return;
+    //       numNewTriangles--;
 
-          const clippedTriangles: Triangle[] = this._camera.frustrum[
-            bound
-          ].clipTriangle(_rasterObj.triangle);
+    //       const clippedTriangles: Triangle[] = this._camera.frustrum[
+    //         bound
+    //       ].clipTriangle(_rasterObj.triangle);
 
-          queue.push(
-            ...clippedTriangles
-              .filter((t) => t)
-              .map((t) => ({
-                triangle: t,
-                worldNormal: _rasterObj.worldNormal,
-                centroid: _rasterObj.centroid,
-                activeTexture: rasterObj.activeTexture,
-              }))
-          );
-        }
-        numNewTriangles = queue.length;
-      });
+    //       queue.push(
+    //         ...clippedTriangles
+    //           .filter((t) => t)
+    //           .map((t) => ({
+    //             triangle: t,
+    //             worldNormal: _rasterObj.worldNormal,
+    //             centroid: _rasterObj.centroid,
+    //             activeTexture: _rasterObj.activeTexture,
+    //           }))
+    //       );
+    //     }
+    //     numNewTriangles = queue.length;
+    //   });
 
-      raster.push(...queue);
-    });
-
-    return toRaster;
+    //   preFragments.push(...queue);
+    // });
+    // TODO: this is not clipping
+    return toPreFragments;
   }
 }

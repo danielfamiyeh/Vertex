@@ -253,6 +253,7 @@ export class Vector {
 
   slice(start: number, end: number) {
     this.comps = this.comps.slice(start, end);
+    this.dim = this.comps.length;
     return this;
   }
 

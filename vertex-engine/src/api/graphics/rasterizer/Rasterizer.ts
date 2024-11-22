@@ -1,7 +1,9 @@
 import { Vector } from '../../math/vector/Vector';
-import { RasterObject } from './Rasterizer.types';
 import { getImageDataAtPixel } from './Rasterizer.utils';
-import { GraphicsPipelineStage } from '../engine/GraphicsEngine.types';
+import {
+  GraphicsPipelineStage,
+  RasterObject,
+} from '../engine/GraphicsEngine.types';
 import { printOne } from '../engine/GraphicsEngine';
 import { Fragment } from '../shader';
 
