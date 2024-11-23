@@ -1,12 +1,12 @@
 import { Entity } from '@vertex/api/game/entity/Entity';
-import { Matrix } from '../../math/matrix/Matrix';
-import { Vector } from '../../math/vector/Vector';
-import { Camera } from '../camera/Camera';
-import { Triangle } from '../triangle/Triangle';
+import { Matrix } from '../../../math/matrix/Matrix';
+import { Vector } from '../../../math/vector/Vector';
+import { Camera } from '../../camera/Camera';
+import { Triangle } from '../../triangle/Triangle';
 import {
   GraphicsPipelineStage,
   RasterObject,
-} from '../engine/GraphicsEngine.types';
+} from '../../engine/GraphicsEngine.types';
 
 export class VertexShader implements GraphicsPipelineStage {
   constructor(

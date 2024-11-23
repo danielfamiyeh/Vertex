@@ -41,13 +41,7 @@ export class GameEngine {
     }
 
     if (delta > interval) {
-      ctx?.clearRect(0, 0, canvas.width, canvas.height);
-      ctx?.translate(canvas.width / 2, canvas.height / 2);
-
       this.graphics.render(this._scene.root.children);
-
-      ctx?.translate(-canvas.width / 2, -canvas.height / 2);
-
       this._lastFrame = now - (delta % interval);
     }
 

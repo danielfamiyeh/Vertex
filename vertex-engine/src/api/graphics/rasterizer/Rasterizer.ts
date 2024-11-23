@@ -138,19 +138,19 @@ export class Rasterizer implements GraphicsPipelineStage {
             ...partialFragment,
             worldNormal,
             centroid,
-            pixelColor: [255, 255, 255],
+            pixelColor: [255, 255, 255, 255],
           })),
           ...partialFragments2.map((partialFragment) => ({
             ...partialFragment,
             worldNormal,
             centroid,
-            pixelColor: [255, 255, 255],
+            pixelColor: [255, 255, 255, 255],
           })),
           ...partialFragments3.map((partialFragment) => ({
             ...partialFragment,
             worldNormal,
             centroid,
-            pixelColor: [255, 255, 255],
+            pixelColor: [255, 255, 255, 255],
           }))
         );
       }

@@ -8,9 +8,10 @@ export const getImageDataAtPixel = (
   const idx = (x + y * imageData.width) * 4;
 
   return [
-    imageData?.data[idx],
-    imageData?.data[idx + 1],
-    imageData?.data[idx + 2],
+    imageData.data[idx],
+    imageData.data[idx + 1],
+    imageData.data[idx + 2],
+    imageData.data[idx + 3],
   ];
 };
 
@@ -18,10 +19,9 @@ export const setImageDataPixel = (
   newValues: number[],
   x: number,
   y: number,
-  canvasWidth: number,
-  imageData: ImageData | undefined
+  imageData: ImageData
 ) => {
   if (!imageData) return;
-  const idx = 4 * (y * canvasWidth + x);
+  const idx = 4 * (y * imageData.width + x);
   newValues.forEach((v, i) => (imageData.data[idx + i] = v));
 };
