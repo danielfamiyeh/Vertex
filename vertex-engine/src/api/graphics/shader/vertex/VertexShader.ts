@@ -17,7 +17,7 @@ export class VertexShader implements GraphicsPipelineStage {
     private _canvasScale: number
   ) {}
 
-  compute(entity: Entity, variables: Record<string, any>) {
+  compute(entity: Entity) {
     const mesh = entity.mesh;
     if (!mesh) return null;
 

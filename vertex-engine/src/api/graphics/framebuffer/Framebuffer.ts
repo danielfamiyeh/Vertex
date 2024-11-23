@@ -33,11 +33,10 @@ export class Framebuffer {
         this._bitmap
       );
     });
-
-    this._offscreenCtx.putImageData(this._bitmap, 0, 0);
   }
 
   drawToScreen() {
+    this._offscreenCtx.putImageData(this._bitmap, 0, 0);
     this._ctx.drawImage(this._offscreenCanvas, 0, 0);
     this._bitmap.data.fill(0);
   }

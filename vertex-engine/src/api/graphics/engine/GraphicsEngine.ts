@@ -15,7 +15,7 @@ import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { MeshData } from '../mesh/Mesh.types';
-import { Fragment, FragmentShader, VertexShader } from '../shader';
+import { FragmentShader, VertexShader } from '../shader';
 import { Rasterizer } from '../rasterizer/Rasterizer';
 import { Framebuffer } from '../framebuffer/Framebuffer';
 
@@ -40,6 +40,7 @@ export class GraphicsEngine {
   private _textureImageData: Record<string, ImageData> = {};
   private _rasterizer: Rasterizer;
   private _framebuffer: Framebuffer;
+  private _vertexShader: VertexShader;
 
   constructor(
     private _canvas = document.getElementById('canvas') as HTMLCanvasElement,
@@ -86,7 +87,7 @@ export class GraphicsEngine {
       rotation: this.camera.direction,
     });
 
-    this._shaders.vertex = new VertexShader(
+    this._vertexShader = new VertexShader(
       projectionMatrix,
       this.camera,
       _canvas.width,
@@ -94,7 +95,6 @@ export class GraphicsEngine {
       this.scale
     );
 
-    this._shaders.fragment = new FragmentShader(this._lights);
     this._framebuffer = new Framebuffer(this._canvas, this._ctx);
 
     // @ts-ignore
@@ -299,22 +299,18 @@ export class GraphicsEngine {
   }
 
   render(entities: Record<string, Entity>) {
-    // TODO: sort by z
-
     Object.keys(entities).forEach((id) => {
       const entity = entities[id];
       this.render(entity.children);
 
-      const vertexOutput = this._shaders.vertex.compute(entity);
-      if (vertexOutput) {
-        const rasterizerOutput = this._rasterizer.compute(vertexOutput);
-        const fragmentOutput = this._shaders.fragment.compute(
-          rasterizerOutput,
-          // TODO: Unnecessary interation
-          { lights: Object.values(this._lights) }
-        );
+      const vertexOutput = this._vertexShader.compute(entity);
 
-        this._framebuffer.drawFragments(fragmentOutput);
+      if (vertexOutput) {
+        const fragments = this._rasterizer.compute(vertexOutput);
+        FragmentShader.compute(fragments, {
+          lights: Object.values(this.lights),
+        });
+        this.framebuffer.drawFragments(fragments);
       }
     });
 

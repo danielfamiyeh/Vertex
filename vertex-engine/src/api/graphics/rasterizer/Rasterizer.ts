@@ -91,7 +91,7 @@ export class Rasterizer implements GraphicsPipelineStage {
                   triangle.texturePoints[2].scale(barycentricCoordinates[2])
                 );
 
-              buffer.push({
+              const fragment = {
                 x: Math.floor(x),
                 y: -Math.floor(y),
                 pixelColor: getImageDataAtPixel(
@@ -103,7 +103,9 @@ export class Rasterizer implements GraphicsPipelineStage {
                 ),
                 worldNormal,
                 centroid,
-              });
+              };
+
+              buffer.push(fragment);
 
               triangle.texturePoints.forEach(
                 (tp, i) => (tp.comps = originalTexturePoints[i])
@@ -124,7 +126,7 @@ export class Rasterizer implements GraphicsPipelineStage {
         const partialFragments1 = Rasterizer.getPartialFragments(
           points[0],
           points[1],
-          dydx2,
+          dydx1,
           worldNormal,
           centroid,
           [255, 255, 255]
@@ -159,6 +161,7 @@ export class Rasterizer implements GraphicsPipelineStage {
         }
       }
     });
+
     return buffer;
   }
 }

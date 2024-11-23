@@ -2,9 +2,8 @@ import { Vector } from '../../api/math/vector/Vector';
 import { GameEngine } from '../../api/game/engine/GameEngine';
 import { Entity } from '../../api/game/entity/Entity';
 import { AmbientLight } from '../../api/graphics/light/AmbientLight';
-import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
-import { PointLight } from '../../api/graphics/light/PointLight';
 import { Color } from '../../api/graphics/color/Color';
+import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
 
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
