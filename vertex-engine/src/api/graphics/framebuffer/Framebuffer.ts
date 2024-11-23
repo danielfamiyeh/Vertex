@@ -17,7 +17,7 @@ export class Framebuffer {
 
     if (!offscreenCtx)
       throw new Error('Could not retrieve context for offscreen canvas');
-    this._offscreenCtx = offscreenCtx;
+    this._offscreenCtx = <OffscreenCanvasRenderingContext2D>offscreenCtx;
     this._offscreenCtx.imageSmoothingEnabled = false;
 
     this._bitmap = new ImageData(_canvas.width, _canvas.height);
