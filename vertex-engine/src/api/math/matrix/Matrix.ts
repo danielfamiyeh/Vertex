@@ -63,12 +63,13 @@ export class Matrix {
   }
 
   static projectionMatrix(
-    canvas: HTMLCanvasElement,
+    canvasWidth: number,
+    canvasHeight: number,
     nearPlane: number,
     farPlane: number,
     fieldOfViewDegrees: number
   ) {
-    const aspectRatio = canvas.height / canvas.width;
+    const aspectRatio = canvasHeight / canvasWidth;
     const projectionMatrix = Matrix.identity(4);
 
     const fieldOfViewRadians =

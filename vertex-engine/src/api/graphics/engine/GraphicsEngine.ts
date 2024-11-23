@@ -2,7 +2,11 @@ import { Mesh, MeshStyle } from '../mesh/Mesh';
 import { Camera } from '../camera/Camera';
 import { Matrix } from '../../math/matrix/Matrix';
 import { Vector } from '../../math/vector/Vector';
-import { GraphicsEngineOptions, RasterObject } from './GraphicsEngine.types';
+import {
+  GraphicsEngineOptions,
+  GraphicsPipelineStage,
+  RasterObject,
+} from './GraphicsEngine.types';
 import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from './GraphicsEngine.utils';
 import { Triangle } from '../triangle/Triangle';
 import { cameraBounds } from '../camera/Camera.utils';
@@ -13,9 +17,11 @@ import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { Color } from '../color/Color';
 import { MeshData } from '../mesh/Mesh.types';
+import { Fragment, FragmentShader, VertexShader } from '../shader';
+import { Rasterizer } from '../rasterizer/Rasterizer';
 
 let printed = 0;
-const printOne = (msg: any) => {
+export const printOne = (msg: any) => {
   if (printed < 11) {
     console.log(msg);
     printed += 1;
@@ -25,12 +31,16 @@ const printOne = (msg: any) => {
 export class GraphicsEngine {
   // TODO: Underscore all private class members
   private _ctx: CanvasRenderingContext2D | null;
-  private projectionMatrix: Matrix;
+
   private camera: Camera;
+  private _shaders: Record<string, GraphicsPipelineStage> = {};
   private _meshData: Record<string, MeshData> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
+  private _pipeline: GraphicsPipelineStage[] = [];
   private _textures: Record<string, HTMLImageElement> = {};
+  private _textureImageData: Record<string, ImageData> = {};
+  private _rasterizer: Rasterizer;
 
   static angle = 180;
 
@@ -42,6 +52,9 @@ export class GraphicsEngine {
 
     if (!this._ctx) throw new Error('Cannot access Canvas context');
 
+    this._ctx.imageSmoothingEnabled = false;
+    this._rasterizer = new Rasterizer(this._textures, this._textureImageData);
+
     const _options = Object.assign(
       {},
       GRAPHICS_ENGINE_OPTIONS_DEFAULTS,
@@ -49,14 +62,14 @@ export class GraphicsEngine {
     );
 
     const { projectionMatrix } = Matrix.projectionMatrix(
-      _canvas,
+      _canvas.width,
+      _canvas.height,
       _options.camera.near,
       _options.camera.far,
       _options.camera.fieldOfView
     );
 
     this.scale = options?.scale ?? _canvas.width;
-    this.projectionMatrix = projectionMatrix;
 
     this.camera = new Camera({
       position: _options.camera.position,
@@ -76,6 +89,22 @@ export class GraphicsEngine {
       rotation: this.camera.direction,
     });
 
+    this._shaders.vertex = new VertexShader(
+      projectionMatrix,
+      this.camera,
+      _canvas.width,
+      _canvas.height,
+      this.scale
+    );
+
+    this._shaders.fragment = new FragmentShader(this._lights);
+
+    this._pipeline = [
+      this._shaders.vertex,
+      this._rasterizer,
+      this._shaders.fragment,
+    ];
+
     // @ts-ignore
     const gameEngine = window.__VERTEX_GAME_ENGINE__ as GameEngine;
     gameEngine.addToScene({ camera: cameraEntity });
@@ -92,240 +121,6 @@ export class GraphicsEngine {
     };
 
     this._meshData = {};
-  }
-
-  private geometry(entity: Entity) {
-    const { camera, projectionMatrix } = this;
-
-    const raster: RasterObject[] = [];
-    const toRaster: RasterObject[] = [];
-
-    const { viewMatrix } = Matrix.viewMatrix(camera);
-
-    const mesh = entity.mesh;
-    const worldMatrix = Matrix.worldMatrix(
-      entity.body?.rotation,
-      entity.body?.position
-    );
-
-    if (!mesh) return;
-
-    mesh.triangles.forEach((triangle) => {
-      const worldPoints = triangle.points.map(
-        (point) => worldMatrix.mult(point.matrix).vector
-      );
-
-      const worldNormal = Vector.sub(worldPoints[1], worldPoints[0])
-        .cross(Vector.sub(worldPoints[2], worldPoints[0]))
-        .normalize()
-        .extend(0);
-
-      const raySimilarity = Vector.sub(
-        Vector.extended(camera.position, 1),
-        worldPoints[0]
-      )
-        .normalize()
-        .dot(worldNormal);
-
-      // TODO: Use Camera.shouldCull
-      if (raySimilarity < 0) return;
-
-      const viewPoints = worldPoints.map(
-        (point) => point.rowMatrix.mult(viewMatrix).vector
-      );
-
-      // I'm guessing a depth buffer would help with this?
-      const clippedTriangles = camera.frustrum.near.clipTriangle(
-        new Triangle(
-          viewPoints,
-          triangle.color,
-          triangle.style,
-          triangle.texturePoints
-        )
-      );
-
-      clippedTriangles.forEach((triangle: Triangle) => {
-        const projectedPoints = triangle.points.map(
-          (point) => projectionMatrix.mult(point.columnMatrix).vector
-        );
-
-        const perspectivePoints = projectedPoints.map(
-          (point) =>
-            new Vector(
-              ...Vector.div(point, point.z)
-                .scale((this._canvas.height / this._canvas.width) * this.scale)
-                .set(3, 1)
-                .comps.slice(0, 3)
-            )
-        );
-
-        // perspectivePoints.forEach((point) => {
-        //   // NDC to screen
-        //   point.x *= this.canvas.width / 2;
-        //   point.y *= this.canvas.height / 2;
-        // });
-
-        toRaster.push({
-          triangle: new Triangle(
-            perspectivePoints,
-            triangle.color,
-            triangle.style,
-            triangle.texturePoints
-          ),
-          worldNormal,
-          centroid: Vector.div(
-            Vector.add(
-              Vector.add(projectedPoints[0], projectedPoints[1]),
-              projectedPoints[2]
-            ),
-            3
-          ),
-          activeTexture: mesh.activeTexture,
-        });
-      });
-    });
-
-    // Clipping routine
-    toRaster.forEach((rasterObj) => {
-      const queue: RasterObject[] = [];
-      queue.push(rasterObj);
-      let numNewTriangles = 1;
-
-      cameraBounds.forEach((bound) => {
-        while (numNewTriangles > 0) {
-          const _rasterObj = queue.pop();
-          if (!_rasterObj) return;
-          numNewTriangles--;
-
-          const clippedTriangles: Triangle[] = camera.frustrum[
-            bound
-          ].clipTriangle(_rasterObj.triangle);
-
-          queue.push(
-            ...clippedTriangles
-              .filter((t) => t)
-              .map((t) => ({
-                triangle: t,
-                worldNormal: _rasterObj.worldNormal,
-                centroid: _rasterObj.centroid,
-                activeTexture: mesh.activeTexture,
-              }))
-          );
-        }
-        numNewTriangles = queue.length;
-      });
-
-      raster.push(...queue);
-    });
-
-    return toRaster;
-  }
-
-  private rasterize(raster: RasterObject[] | undefined) {
-    const lightIds = Object.keys(this._lights);
-
-    raster &&
-      raster.forEach((rasterObj) => {
-        let colorComps = [0, 0, 0];
-
-        if (printed < 11) {
-          printed++;
-        }
-
-        const { centroid, worldNormal, triangle } = rasterObj;
-
-        lightIds.forEach((lightId) => {
-          const light = this._lights[lightId];
-          const color = light.illuminate(
-            new Vector(worldNormal.x, worldNormal.y, worldNormal.z),
-            centroid.copy()
-          );
-          color.comps.forEach((val, i) => (colorComps[i] += val));
-        });
-
-        colorComps = colorComps.map((val) => Math.min(val, 255));
-        triangle.color = `#${new Color(colorComps, 'rgb').toHex()}`;
-      });
-    return raster;
-  }
-
-  private screen(raster: RasterObject[] | undefined) {
-    if (!raster) return;
-
-    const { ctx } = this;
-
-    raster.forEach(({ triangle, activeTexture }) => {
-      if (!ctx) return;
-
-      const {
-        points: [p1, p2, p3],
-        color,
-        style,
-      } = triangle;
-
-      if (triangle.hasTexture) {
-        const texture = this._textures[activeTexture];
-        const { naturalWidth, naturalHeight } = texture;
-
-        const bounds = {
-          xMin: Math.min(p1.x, p2.x, p3.x),
-          xMax: Math.max(p1.x, p2.x, p3.x),
-          yMin: Math.min(p1.y, p2.y, p3.y),
-          yMax: Math.max(p1.y, p2.y, p3.y),
-        };
-
-        for (let x = bounds.xMin; x <= bounds.xMax; x++) {
-          for (let y = bounds.yMin; y <= bounds.yMax; y++) {
-            const barycentricCoordinates = triangle.barycentricCoordinates(
-              new Vector(x, y)
-            );
-            const pointLiesInTriangle =
-              Math.abs(barycentricCoordinates.reduce((a, b) => a + b, 0) - 1) <=
-              1e-6;
-
-            if (pointLiesInTriangle) {
-              const uvInterpolated = Vector.scale(
-                triangle.texturePoints[0],
-                barycentricCoordinates[0]
-              )
-                .add(
-                  Vector.scale(
-                    triangle.texturePoints[1],
-                    barycentricCoordinates[1]
-                  )
-                )
-                .add(
-                  Vector.scale(
-                    triangle.texturePoints[2],
-                    barycentricCoordinates[2]
-                  )
-                );
-
-              ctx.drawImage(
-                this._textures[activeTexture],
-                uvInterpolated.x * naturalWidth,
-                (1 - uvInterpolated.y) * naturalHeight,
-                1,
-                1,
-                x,
-                -y,
-                1,
-                1
-              );
-            }
-          }
-        }
-      } else {
-        ctx[`${style}Style`] = color;
-
-        ctx?.beginPath();
-        ctx?.moveTo(p1.x, -p1.y);
-        ctx?.lineTo(p2.x, -p2.y);
-        ctx?.lineTo(p3.x, -p3.y);
-        ctx?.lineTo(p1.x, -p1.y);
-        ctx[style]();
-      }
-    });
   }
 
   async loadMesh(
@@ -483,10 +278,32 @@ export class GraphicsEngine {
     const textureExists = !!this._textures[key];
     if (textureExists) return this._textures[key];
 
-    const image = new Image();
-    image.src = url;
+    await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.src = url;
+      image.onload = (evt) => {
+        const image = evt.target as HTMLImageElement;
+        this._textures[key] = image;
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext('2d', { alpha: false });
 
-    this._textures[key] = image;
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+
+        image.setAttribute('crossOrigin', '');
+
+        ctx?.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight);
+        const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
+        // TODO: throw if undefined
+        if (imageData) this._textureImageData[key] = imageData;
+
+        resolve(image.height);
+      };
+
+      image.onerror = (evt) => reject(evt);
+    });
   }
 
   render(entities: Record<string, Entity>) {
@@ -496,13 +313,25 @@ export class GraphicsEngine {
       const entity = entities[id];
       this.render(entity.children);
 
-      const _raster = this.rasterize(this.geometry(entity));
-      _raster && raster.push(..._raster);
+      const vertexOutput = this._shaders.vertex.compute(entity);
+      if (vertexOutput) {
+        const rasterizerOutput = this._rasterizer.compute(vertexOutput);
+        const fragmentOutput = this._shaders.fragment.compute(
+          rasterizerOutput,
+          { lights: Object.values(this._lights) }
+        );
+        fragmentOutput.forEach(
+          (fragment: Fragment) =>
+            this._ctx && FragmentShader.drawPixel(fragment, this._ctx)
+        );
+      }
+
+      // printOne(rasterizerOutput);
+      // const _raster = this.rasterize(this.geometry(entity));
+      // _raster && raster.push(..._raster);
     });
 
     raster.sort((a, b) => b.centroid.z - a.centroid.z);
-
-    this.screen(raster);
   }
 
   get lights() {

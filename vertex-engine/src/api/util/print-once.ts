@@ -1,6 +1,6 @@
 let printed = false;
 
-function printOne(message: any) {
+export function printOnce(message: any) {
   !printed && console.log(message);
   printed = true;
 }

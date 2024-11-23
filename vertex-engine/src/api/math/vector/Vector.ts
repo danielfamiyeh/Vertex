@@ -33,8 +33,9 @@ export class Vector {
    * @param {Vector} v2 Vector 2
    * @returns {Vector} Sum of vectors
    */
-  static add(v1: Vector, v2: Vector): Vector {
-    return new Vector(...v1.comps.map((comp, i) => comp + v2.get(i)));
+  static add(...vectors: Vector[]): Vector {
+    vectors[0] = vectors[0].copy();
+    return vectors.reduce((a, b) => a.add(b));
   }
 
   /**
@@ -93,10 +94,12 @@ export class Vector {
    * @param {Vector} v Another vector
    * @returns {Vector} Vector sum
    */
-  add(v: Vector): Vector {
-    for (let i = 0; i < this.dim; i++) {
-      this.comps[i] += v.get(i);
-    }
+  add(...vectors: Vector[]): Vector {
+    vectors.forEach((v) => {
+      for (let i = 0; i < this.dim; i++) {
+        this.comps[i] += v.get(i);
+      }
+    });
 
     return this;
   }
@@ -245,6 +248,12 @@ export class Vector {
    */
   set(i: number, val: number): Vector {
     this.comps[i] = val;
+    return this;
+  }
+
+  slice(start: number, end: number) {
+    this.comps = this.comps.slice(start, end);
+    this.dim = this.comps.length;
     return this;
   }
 

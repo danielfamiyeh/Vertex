@@ -1,6 +1,8 @@
+import { Entity } from '@vertex/api/game/entity/Entity';
 import { Vector } from '../../math/vector/Vector';
 import { Light } from '../light/Light';
 import { Triangle } from '../triangle/Triangle';
+import { Fragment } from '../shader';
 
 export type GraphicsEngineOptions = {
   style?: 'fill' | 'stroke';
@@ -24,3 +26,10 @@ export type RasterObject = {
   centroid: Vector;
   activeTexture: string;
 };
+
+export interface GraphicsPipelineStage {
+  compute(
+    triangleData: Entity | Fragment[] | RasterObject[],
+    variables?: Record<string, any>
+  ): any;
+}
