@@ -39,8 +39,8 @@ export class Rasterizer implements GraphicsPipelineStage {
     } else {
       for (let x = startPoint.x; x <= endPoint.x; x++) {
         partialFragments.push({
-          x,
-          y: -(startPoint.y + dydx * (x - startPoint.x)),
+          x: Math.floor(x),
+          y: Math.floor(-(startPoint.y + dydx * (x - startPoint.x))),
           worldNormal,
           centroid,
           pixelColor,
