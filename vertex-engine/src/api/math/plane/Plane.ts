@@ -89,34 +89,34 @@ export class Plane {
     switch (points.inside.length) {
       case 1: {
         // Clip triangle against ray of intersection
-        const newPoints: Vector[] = [];
-        const newTexturePoints: Vector[] = [];
+        // const newPoints: Vector[] = [];
+        // const newTexturePoints: Vector[] = [];
 
-        // Preserve inside point
-        newPoints.push(points.inside[0]);
-        input.hasTexture && newTexturePoints.push(texturePoints.inside[0]);
+        // // Preserve inside point
+        // newPoints.push(points.inside[0]);
+        // input.hasTexture && newTexturePoints.push(texturePoints.inside[0]);
 
-        // Get new points based on ray intersection from preserved point and plane
-        points.outside.forEach((point, i) => {
-          const { ray: newPoint, t } = this.intersectRay(newPoints[0], point);
+        // // Get new points based on ray intersection from preserved point and plane
+        // points.outside.forEach((point, i) => {
+        //   const { ray: newPoint, t } = this.intersectRay(newPoints[0], point);
 
-          newPoints.push(newPoint);
-          // This nesting is getting janky :/
-          input.hasTexture &&
-            newTexturePoints.push(
-              Vector.add(
-                newTexturePoints[0],
-                Vector.scale(
-                  Vector.sub(texturePoints.outside[i], newTexturePoints[0]),
-                  t ?? 1
-                )
-              )
-            );
-        });
+        //   newPoints.push(newPoint);
+        //   // This nesting is getting janky :/
+        //   input.hasTexture &&
+        //     newTexturePoints.push(
+        //       Vector.add(
+        //         newTexturePoints[0],
+        //         Vector.scale(
+        //           Vector.sub(texturePoints.outside[i], newTexturePoints[0]),
+        //           t ?? 1
+        //         )
+        //       )
+        //     );
+        // });
 
-        newTriangles.push(
-          new Triangle(newPoints, input.color, input.style, newTexturePoints)
-        );
+        // newTriangles.push(
+        //   new Triangle(newPoints, input.color, input.style, newTexturePoints)
+        // );
         break;
       }
 

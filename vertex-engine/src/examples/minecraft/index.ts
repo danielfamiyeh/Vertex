@@ -2,23 +2,22 @@ import { Vector } from '../../api/math/vector/Vector';
 import { GameEngine } from '../../api/game/engine/GameEngine';
 import { Entity } from '../../api/game/entity/Entity';
 import { AmbientLight } from '../../api/graphics/light/AmbientLight';
-import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
-import { PointLight } from '../../api/graphics/light/PointLight';
 import { Color } from '../../api/graphics/color/Color';
+import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
 
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/models/cube.obj',
-      // textures: [
-      //   { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
-      // ],
+      textures: [
+        { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
+      ],
       scale: Vector.uniform(5, 3),
       style: 'stroke',
     },
     physics: {
       position: new Vector(0, 5, 5),
-      rotation: new Vector(0, 0, 0),
+      rotation: new Vector(20, 30, 0),
     },
   });
 
@@ -46,7 +45,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     .setRigidBody()
     .addChildren({ cube, sphere2 });
 
-  shapes.body?.addForce('rotation', new Vector(0, 1, 0));
+  shapes.body?.addForce('rotation', new Vector(2, 1, 0));
   shapes.body?.addTransform('rotate', (_, self) =>
     self.rotation.add(self.forces.rotation)
   );

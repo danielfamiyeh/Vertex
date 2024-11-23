@@ -16,12 +16,12 @@ export class Rasterizer implements GraphicsPipelineStage {
   static getPartialFragments(
     startPoint: Vector,
     endPoint: Vector,
-    dydx: number
+    dydx: number,
+    worldNormal: Vector,
+    centroid: Vector,
+    pixelColor: number[]
   ) {
-    const partialFragments: Omit<
-      Fragment,
-      'worldNormal' | 'centroid' | 'pixelColor'
-    >[] = [];
+    const partialFragments: Fragment[] = [];
 
     if (dydx === Infinity) {
       const _startPoint = endPoint.y > startPoint.y ? startPoint : endPoint;
@@ -31,13 +31,19 @@ export class Rasterizer implements GraphicsPipelineStage {
         partialFragments.push({
           x: _startPoint.x,
           y: -y,
+          worldNormal,
+          centroid,
+          pixelColor,
         });
       }
     } else {
       for (let x = startPoint.x; x <= endPoint.x; x++) {
         partialFragments.push({
-          x,
-          y: -(startPoint.y + dydx * (x - startPoint.x)),
+          x: Math.floor(x),
+          y: Math.floor(-(startPoint.y + dydx * (x - startPoint.x))),
+          worldNormal,
+          centroid,
+          pixelColor,
         });
       }
     }
@@ -85,7 +91,7 @@ export class Rasterizer implements GraphicsPipelineStage {
                   triangle.texturePoints[2].scale(barycentricCoordinates[2])
                 );
 
-              buffer.push({
+              const fragment = {
                 x: Math.floor(x),
                 y: -Math.floor(y),
                 pixelColor: getImageDataAtPixel(
@@ -97,7 +103,9 @@ export class Rasterizer implements GraphicsPipelineStage {
                 ),
                 worldNormal,
                 centroid,
-              });
+              };
+
+              buffer.push(fragment);
 
               triangle.texturePoints.forEach(
                 (tp, i) => (tp.comps = originalTexturePoints[i])
@@ -118,41 +126,39 @@ export class Rasterizer implements GraphicsPipelineStage {
         const partialFragments1 = Rasterizer.getPartialFragments(
           points[0],
           points[1],
-          dydx1
+          dydx1,
+          worldNormal,
+          centroid,
+          [255, 255, 255]
         );
 
         const partialFragments2 = Rasterizer.getPartialFragments(
           points[1],
           points[2],
-          dydx2
+          dydx2,
+          worldNormal,
+          centroid,
+          [255, 255, 255]
         );
 
         const partialFragments3 = Rasterizer.getPartialFragments(
           points[0],
           points[2],
-          dydx3
+          dydx3,
+          worldNormal,
+          centroid,
+          [255, 255, 255]
         );
 
-        buffer.push(
-          ...partialFragments1.map((partialFragment) => ({
-            ...partialFragment,
-            worldNormal,
-            centroid,
-            pixelColor: [255, 255, 255],
-          })),
-          ...partialFragments2.map((partialFragment) => ({
-            ...partialFragment,
-            worldNormal,
-            centroid,
-            pixelColor: [255, 255, 255],
-          })),
-          ...partialFragments3.map((partialFragment) => ({
-            ...partialFragment,
-            worldNormal,
-            centroid,
-            pixelColor: [255, 255, 255],
-          }))
-        );
+        for (let i = 0; i < partialFragments1.length; i++) {
+          buffer.push(partialFragments1[i]);
+        }
+        for (let i = 0; i < partialFragments2.length; i++) {
+          buffer.push(partialFragments2[i]);
+        }
+        for (let i = 0; i < partialFragments3.length; i++) {
+          buffer.push(partialFragments3[i]);
+        }
       }
     });
 

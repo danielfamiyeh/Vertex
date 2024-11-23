@@ -1,4 +1,4 @@
-import { Vector } from '../../math/vector/Vector';
+import { Vector } from '../../../math/vector/Vector';
 
 export type Fragment = {
   x: number;

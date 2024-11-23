@@ -9,16 +9,15 @@ import {
 } from './GraphicsEngine.types';
 import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from './GraphicsEngine.utils';
 import { Triangle } from '../triangle/Triangle';
-import { cameraBounds } from '../camera/Camera.utils';
 import { Entity } from '../../game/entity/Entity';
 import { Sphere } from '../../math/sphere/Sphere';
 import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
-import { Color } from '../color/Color';
 import { MeshData } from '../mesh/Mesh.types';
-import { Fragment, FragmentShader, VertexShader } from '../shader';
+import { FragmentShader, VertexShader } from '../shader';
 import { Rasterizer } from '../rasterizer/Rasterizer';
+import { Framebuffer } from '../framebuffer/Framebuffer';
 
 let printed = 0;
 export const printOne = (msg: any) => {
@@ -37,12 +36,11 @@ export class GraphicsEngine {
   private _meshData: Record<string, MeshData> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
-  private _pipeline: GraphicsPipelineStage[] = [];
   private _textures: Record<string, HTMLImageElement> = {};
   private _textureImageData: Record<string, ImageData> = {};
   private _rasterizer: Rasterizer;
-
-  static angle = 180;
+  private _framebuffer: Framebuffer;
+  private _vertexShader: VertexShader;
 
   constructor(
     private _canvas = document.getElementById('canvas') as HTMLCanvasElement,
@@ -89,7 +87,7 @@ export class GraphicsEngine {
       rotation: this.camera.direction,
     });
 
-    this._shaders.vertex = new VertexShader(
+    this._vertexShader = new VertexShader(
       projectionMatrix,
       this.camera,
       _canvas.width,
@@ -97,13 +95,7 @@ export class GraphicsEngine {
       this.scale
     );
 
-    this._shaders.fragment = new FragmentShader(this._lights);
-
-    this._pipeline = [
-      this._shaders.vertex,
-      this._rasterizer,
-      this._shaders.fragment,
-    ];
+    this._framebuffer = new Framebuffer(this._canvas, this._ctx);
 
     // @ts-ignore
     const gameEngine = window.__VERTEX_GAME_ENGINE__ as GameEngine;
@@ -307,31 +299,26 @@ export class GraphicsEngine {
   }
 
   render(entities: Record<string, Entity>) {
-    const raster: RasterObject[] = [];
-
     Object.keys(entities).forEach((id) => {
       const entity = entities[id];
       this.render(entity.children);
 
-      const vertexOutput = this._shaders.vertex.compute(entity);
-      if (vertexOutput) {
-        const rasterizerOutput = this._rasterizer.compute(vertexOutput);
-        const fragmentOutput = this._shaders.fragment.compute(
-          rasterizerOutput,
-          { lights: Object.values(this._lights) }
-        );
-        fragmentOutput.forEach(
-          (fragment: Fragment) =>
-            this._ctx && FragmentShader.drawPixel(fragment, this._ctx)
-        );
-      }
+      const vertexOutput = this._vertexShader.compute(entity);
 
-      // printOne(rasterizerOutput);
-      // const _raster = this.rasterize(this.geometry(entity));
-      // _raster && raster.push(..._raster);
+      if (vertexOutput) {
+        const fragments = this._rasterizer.compute(vertexOutput);
+        FragmentShader.compute(fragments, {
+          lights: Object.values(this.lights),
+        });
+        this.framebuffer.drawFragments(fragments);
+      }
     });
 
-    raster.sort((a, b) => b.centroid.z - a.centroid.z);
+    this._framebuffer.drawToScreen();
+  }
+
+  get framebuffer() {
+    return this._framebuffer;
   }
 
   get lights() {
