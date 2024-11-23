@@ -2,13 +2,11 @@ import { Entity } from '@vertex/api/game/entity/Entity';
 import { Matrix } from '../../math/matrix/Matrix';
 import { Vector } from '../../math/vector/Vector';
 import { Camera } from '../camera/Camera';
-import { cameraBounds } from '../camera/Camera.utils';
 import { Triangle } from '../triangle/Triangle';
 import {
   GraphicsPipelineStage,
   RasterObject,
 } from '../engine/GraphicsEngine.types';
-import { printOne } from '../engine/GraphicsEngine';
 
 export class VertexShader implements GraphicsPipelineStage {
   constructor(
@@ -78,7 +76,7 @@ export class VertexShader implements GraphicsPipelineStage {
           point
             .div(point.z)
             .scale((this._canvasHeight / this._canvasWidth) * this._canvasScale)
-            .set(3, 1)
+            .set(2, 1)
             .slice(0, 3)
         );
 

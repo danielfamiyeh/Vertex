@@ -10,27 +10,27 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
     graphics: {
       mesh: 'http://127.0.0.1:8080/models/cube.obj',
-      textures: [
-        { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
-      ],
+      // textures: [
+      //   { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
+      // ],
       scale: Vector.uniform(5, 3),
       style: 'stroke',
     },
     physics: {
       position: new Vector(0, 5, 5),
-      // rotation: new Vector(0, 90, 0),
+      rotation: new Vector(0, 0, 0),
     },
   });
 
-  // const sphere2 = await gameEngine.createEntity('sphere', {
-  //   graphics: {
-  //     mesh: 'http://127.0.0.1:8080/models/sphere.obj',
-  //     scale: Vector.uniform(2, 3),
-  //   },
-  //   physics: {
-  //     position: new Vector(-20, 0, 5),
-  //   },
-  // });
+  const sphere2 = await gameEngine.createEntity('sphere', {
+    graphics: {
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
+      scale: Vector.uniform(2, 3),
+    },
+    physics: {
+      position: new Vector(-20, 0, 5),
+    },
+  });
 
   // const sphere3 = await gameEngine.createEntity('sphere', {
   //   graphics: {
@@ -42,9 +42,11 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   //   },
   // });
 
-  const shapes = new Entity('shapes').setRigidBody().addChildren({ cube });
+  const shapes = new Entity('shapes')
+    .setRigidBody()
+    .addChildren({ cube, sphere2 });
 
-  shapes.body?.addForce('rotation', new Vector(2, 1, 0));
+  shapes.body?.addForce('rotation', new Vector(0, 1, 0));
   shapes.body?.addTransform('rotate', (_, self) =>
     self.rotation.add(self.forces.rotation)
   );

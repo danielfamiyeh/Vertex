@@ -4,14 +4,46 @@ import {
   GraphicsPipelineStage,
   RasterObject,
 } from '../engine/GraphicsEngine.types';
-import { printOne } from '../engine/GraphicsEngine';
 import { Fragment } from '../shader';
+import { printOne } from '../engine/GraphicsEngine';
 
 export class Rasterizer implements GraphicsPipelineStage {
   constructor(
     private _textures: Record<string, HTMLImageElement>,
     private _textureImageData: Record<string, ImageData>
   ) {}
+
+  static getPartialFragments(
+    startPoint: Vector,
+    endPoint: Vector,
+    dydx: number
+  ) {
+    const partialFragments: Omit<
+      Fragment,
+      'worldNormal' | 'centroid' | 'pixelColor'
+    >[] = [];
+
+    if (dydx === Infinity) {
+      const _startPoint = endPoint.y > startPoint.y ? startPoint : endPoint;
+      const _endPoint = startPoint === endPoint ? startPoint : endPoint;
+
+      for (let y = _startPoint.y; y <= _endPoint.y; y++) {
+        partialFragments.push({
+          x: _startPoint.x,
+          y: -y,
+        });
+      }
+    } else {
+      for (let x = startPoint.x; x <= endPoint.x; x++) {
+        partialFragments.push({
+          x,
+          y: -(startPoint.y + dydx * (x - startPoint.x)),
+        });
+      }
+    }
+
+    return partialFragments;
+  }
 
   compute(raster: RasterObject[]) {
     const buffer: Fragment[] = [];
@@ -55,7 +87,7 @@ export class Rasterizer implements GraphicsPipelineStage {
 
               buffer.push({
                 x: Math.floor(x),
-                y: Math.floor(-y),
+                y: -Math.floor(y),
                 pixelColor: getImageDataAtPixel(
                   // Technically the job of a fragment shader (I think?)
                   // But may as well do this here to save interpolating again
@@ -67,18 +99,6 @@ export class Rasterizer implements GraphicsPipelineStage {
                 centroid,
               });
 
-              // this._rasterContext?.drawImage(
-              //   textures[activeTexture],
-              //   uvInterpolated.x * naturalWidth,
-              //   (1 - uvInterpolated.y) * naturalHeight,
-              //   1,
-              //   1,
-              //   Math.floor(x),
-              //   Math.floor(-y),
-              //   1,
-              //   1
-              // );
-
               triangle.texturePoints.forEach(
                 (tp, i) => (tp.comps = originalTexturePoints[i])
               );
@@ -86,7 +106,53 @@ export class Rasterizer implements GraphicsPipelineStage {
           }
         }
       } else {
-        // TODO: No texture
+        const points = [p1, p2, p3].sort((a, b) => a.x - b.x);
+        const v = Vector.sub(points[1], points[0]);
+        const v2 = Vector.sub(points[2], points[1]);
+        const v3 = Vector.sub(points[2], points[0]);
+
+        const dydx1 = v.y / v.x;
+        const dydx2 = v2.y / v2.x;
+        const dydx3 = v3.y / v3.x;
+
+        const partialFragments1 = Rasterizer.getPartialFragments(
+          points[0],
+          points[1],
+          dydx1
+        );
+
+        const partialFragments2 = Rasterizer.getPartialFragments(
+          points[1],
+          points[2],
+          dydx2
+        );
+
+        const partialFragments3 = Rasterizer.getPartialFragments(
+          points[0],
+          points[2],
+          dydx3
+        );
+
+        buffer.push(
+          ...partialFragments1.map((partialFragment) => ({
+            ...partialFragment,
+            worldNormal,
+            centroid,
+            pixelColor: [255, 255, 255],
+          })),
+          ...partialFragments2.map((partialFragment) => ({
+            ...partialFragment,
+            worldNormal,
+            centroid,
+            pixelColor: [255, 255, 255],
+          })),
+          ...partialFragments3.map((partialFragment) => ({
+            ...partialFragment,
+            worldNormal,
+            centroid,
+            pixelColor: [255, 255, 255],
+          }))
+        );
       }
     });
 
