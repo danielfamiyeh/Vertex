@@ -46,10 +46,10 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     .setRigidBody()
     .addChildren({ cube, sphere2 });
 
-  // shapes.body?.addForce('rotation', new Vector(2, 1, 0));
-  // shapes.body?.addTransform('rotate', (_, self) =>
-  //   self.rotation.add(self.forces.rotation)
-  // );
+  shapes.body?.addForce('rotation', new Vector(2, 1, 0));
+  shapes.body?.addTransform('rotate', (_, self) =>
+    self.rotation.add(self.forces.rotation)
+  );
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
     new Color([1, 0, 0], 'rgb')
