@@ -9,22 +9,22 @@ import {
 } from '../../math/vector/Vector';
 import { CameraFrustrum, CameraOptions } from './Camera.types';
 import { GameEngine } from '../../game/engine/GameEngine';
+import { RigidBody } from 'src/api/physics/rigid-body/RigidBody';
 
 export const upVector = [0, 1, 0];
 
 export class Camera {
+  // @ts-ignore
   private _frustrum: CameraFrustrum = {};
-  private _position: Vector;
-  private _direction: Vector;
   private _displacement: number;
-  private _rotation: number;
+  private _rotationalDisplacement: number;
+  private _body: RigidBody;
 
   constructor(options: CameraOptions) {
     setTimeout;
-    this._position = options.position;
-    this._direction = options.direction;
     this._displacement = options.displacement;
-    this._rotation = options.rotation;
+    this._rotationalDisplacement = options.displacement / 50;
+    this._body = options.body;
 
     // this._frustrum = {
     //   // TODO: Why are some of these flipped?
@@ -92,7 +92,7 @@ export class Camera {
 
     if (event.key === 'ArrowLeft') {
       const left = vectorScale(
-        vectorNormalize(vectorCross(this.direction, upVector)),
+        vectorNormalize(vectorCross(this.body.rotation, upVector)),
         this._displacement
       );
 
@@ -101,7 +101,7 @@ export class Camera {
 
     if (event.key === 'ArrowRight') {
       const right = vectorScale(
-        vectorNormalize(vectorCross(this.direction, upVector)),
+        vectorNormalize(vectorCross(this.body.rotation, upVector)),
         -this._displacement
       );
 
@@ -109,34 +109,30 @@ export class Camera {
     }
 
     if (event.key.toLowerCase() === 'a') {
-      cameraEntity.body.forces.rotation[0] = -this._rotation;
+      cameraEntity.body.forces.rotation[0] = -this._rotationalDisplacement;
     }
 
     if (event.key.toLowerCase() === 'd') {
-      cameraEntity.body.forces.rotation[0] = this._rotation;
+      cameraEntity.body.forces.rotation[0] = this._rotationalDisplacement;
     }
 
     if (event.key.toLowerCase() === 'w') {
       cameraEntity.body.forces.velocity = vectorScale(
-        vectorNormalize(this._direction),
+        vectorNormalize(this._body.rotation),
         this._displacement
       );
     }
 
     if (event.key.toLowerCase() === 's') {
       cameraEntity.body.forces.velocity = vectorScale(
-        vectorNormalize(this._direction),
+        vectorNormalize(this._body.rotation),
         -this._displacement
       );
     }
   }
 
-  get position() {
-    return this._position;
-  }
-
-  get direction() {
-    return this._direction;
+  get body() {
+    return this._body;
   }
 
   get displacement() {

@@ -1,5 +1,5 @@
+import { RigidBody } from 'src/api/physics/rigid-body/RigidBody';
 import { Plane } from '../../../api/math/plane/Plane';
-import { Vector } from '../../../api/math/vector/Vector';
 
 export type CameraFrustrum = {
   near: Plane;
@@ -12,11 +12,9 @@ export type CameraFrustrum = {
 
 export type CameraOptions = {
   displacement: number;
-  rotation: number;
-  position: Vector;
-  direction: Vector;
   near: number;
   far: number;
   bottom: number;
   right: number;
+  body: RigidBody;
 };

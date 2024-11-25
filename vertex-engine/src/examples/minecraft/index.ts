@@ -16,7 +16,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
       style: 'stroke',
     },
     physics: {
-      position: [0, 5, 5],
+      position: [0, 5, -15],
       rotation: [20, 30, 0],
     },
   });
@@ -46,9 +46,9 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     .addChildren({ cube, sphere2 });
 
   shapes.body?.addForce('rotation', [2, 1, 0]);
-  shapes.body?.addTransform('rotate', (_, self) =>
-    vectorAdd(self.rotation, self.forces.rotation)
-  );
+  shapes.body?.addTransform('rotate', (_, self) => {
+    self.rotation = vectorAdd(self.rotation, self.forces.rotation);
+  });
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
     new Color([1, 0, 0], 'rgb')

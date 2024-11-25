@@ -31,8 +31,8 @@ export function matrixView(camera: Camera): {
   cameraMatrix: Matrix;
   viewMatrix: Matrix;
 } {
-  const { position, direction } = camera;
-  const target = vectorAdd(position, direction);
+  const { position, rotation } = camera.body;
+  const target = vectorAdd(position, rotation);
 
   const newZAxis = vectorSub(target, position);
   const newXAxis = vectorCross(upVector, newZAxis);

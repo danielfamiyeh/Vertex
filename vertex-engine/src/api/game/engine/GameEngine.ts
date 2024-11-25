@@ -1,4 +1,4 @@
-import { GraphicsEngine } from '../../graphics/engine/GraphicsEngine';
+import { GraphicsEngine, printOne } from '../../graphics/engine/GraphicsEngine';
 import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from '../../graphics/engine/GraphicsEngine.utils';
 import { PhysicsEngine } from '../../physics/engine/PhysicsEngine';
 import { GameEngineOptions } from './GameEngine.utils';
@@ -32,9 +32,6 @@ export class GameEngine {
     const now = Date.now();
     const interval = 1000 / this.fps;
     const delta = now - this.lastFrame;
-    const {
-      graphics: { ctx, canvas },
-    } = this;
 
     if (delta > interval / 2) {
       this.physics.update(delta, this._scene.root.children);

@@ -64,6 +64,14 @@ export class RigidBody {
     return this._rotation;
   }
 
+  set position(v: Vector) {
+    this._position = v;
+  }
+
+  set rotation(v: Vector) {
+    this._rotation = v;
+  }
+
   get mass() {
     return this._mass;
   }

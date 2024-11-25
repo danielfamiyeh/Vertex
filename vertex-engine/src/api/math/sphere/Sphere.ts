@@ -1,10 +1,10 @@
-import { Vector } from '../vector/Vector';
+import { Vector, vectorMag, vectorSub } from '../vector/Vector';
 
 export class Sphere {
   constructor(private _position: Vector, private _radius: number) {}
 
   isIntersectingSphere(s: Sphere) {
-    const d = Vector.sub(s.position, this.position).mag;
+    const d = vectorMag(vectorSub(s.position, this.position));
     return d < this.radius + s.radius;
   }
 

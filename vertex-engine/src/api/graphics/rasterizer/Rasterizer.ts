@@ -47,25 +47,21 @@ export class Rasterizer {
     return partialFragments;
   }
 
-  static compute(
-    raster: RasterObject[],
-    textureDimensions: Record<string, { width: number; height: number }>,
-    textureImageData: Record<string, ImageData>
-  ) {
+  static compute(raster: RasterObject[], textureImageData: ImageData) {
     const buffer: Fragment[] = [];
 
-    raster.forEach(({ triangle, activeTexture, worldNormal, centroid }, i) => {
+    raster.forEach(({ triangle, worldNormal, centroid }, i) => {
       const {
         points: [p1, p2, p3],
       } = triangle;
 
-      if (triangle.hasTexture) {
+      if (textureImageData) {
         const [[x1, y1], [x2, y2], [x3, y3]] = [p1, p2, p3];
         const bounds = {
           xMin: Math.min(x1, x2, x3),
           xMax: Math.max(x1, x2, x3),
-          yMin: Math.min(x1, y2, y3),
-          yMax: Math.max(x1, y2, y3),
+          yMin: Math.min(y1, y2, y3),
+          yMax: Math.max(y1, y2, y3),
         };
 
         for (let x = bounds.xMin; x <= bounds.xMax; x++) {
@@ -78,21 +74,9 @@ export class Rasterizer {
               1e-6;
 
             if (pointLiesInTriangle) {
-              const originalTexturePoints = triangle.texturePoints.map(
-                (tp, i) => {
-                  const _tp = [...tp];
-                  vectorScale(
-                    triangle.texturePoints[i],
-                    barycentricCoordinates[i]
-                  );
-                  return _tp;
-                }
-              );
-
-              const uvInterpolated = vectorAdd(
-                vectorAdd(triangle.texturePoints[0], triangle.texturePoints[1]),
-                triangle.texturePoints[2]
-              );
+              const uvInterpolated = triangle.texturePoints
+                .map((tp, i) => vectorScale(tp, barycentricCoordinates[i]))
+                .reduce(([u1, v1], [u2, v2]) => [u1 + u2, v1 + v2], [0, 0]);
 
               const fragment = {
                 x: Math.floor(x),
@@ -100,24 +84,15 @@ export class Rasterizer {
                 pixelColor: getImageDataAtPixel(
                   // Technically the job of a fragment shader (I think?)
                   // But may as well do this here to save interpolating again
-                  Math.floor(
-                    uvInterpolated[0] * textureDimensions[activeTexture].width
-                  ),
-                  Math.floor(
-                    (1 - uvInterpolated[1]) *
-                      textureDimensions[activeTexture].height
-                  ),
-                  textureImageData[activeTexture]
+                  Math.floor(uvInterpolated[0] * textureImageData.width),
+                  Math.floor((1 - uvInterpolated[1]) * textureImageData.height),
+                  textureImageData
                 ),
                 worldNormal,
                 centroid,
               };
 
               buffer.push(fragment);
-
-              triangle.texturePoints.forEach(
-                (tp, i) => (tp = originalTexturePoints[i])
-              );
             }
           }
         }

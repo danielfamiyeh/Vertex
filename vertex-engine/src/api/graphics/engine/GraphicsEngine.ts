@@ -1,6 +1,6 @@
 import { Mesh, MeshStyle } from '../mesh/Mesh';
 import { Camera } from '../camera/Camera';
-import { Matrix, matrixProjection } from '../../math/matrix/Matrix';
+import { Matrix, matrixProjection, matrixView } from '../../math/matrix/Matrix';
 import {
   Vector,
   vectorAdd,
@@ -76,22 +76,20 @@ export class GraphicsEngine {
 
     this.scale = options?.scale ?? _canvas.width;
 
-    this.camera = new Camera({
+    const cameraEntity = new Entity('__CAMERA__');
+
+    cameraEntity.body = new RigidBody({
       position: _options.camera.position,
-      direction: _options.camera.direction,
+      rotation: _options.camera.direction,
+    });
+
+    this.camera = new Camera({
       displacement: _options.camera.displacement,
       near: _options.camera.near,
       far: _options.camera.far,
       bottom: _canvas.height,
       right: _canvas.width,
-      rotation: _options.camera.rotation,
-    });
-
-    const cameraEntity = new Entity('__CAMERA__');
-
-    cameraEntity.body = new RigidBody({
-      position: this.camera.position,
-      rotation: this.camera.direction,
+      body: cameraEntity.body,
     });
 
     this._vertexShader = new VertexShader(
@@ -119,19 +117,21 @@ export class GraphicsEngine {
     cameraEntity.body.forces.rotation = [0, 0, 0];
 
     cameraEntity.body.transforms.move = () => {
-      if (cameraEntity.body?.position && cameraEntity.body.forces.velocity)
-        vectorAdd(
+      if (cameraEntity.body?.position && cameraEntity.body.forces.velocity) {
+        cameraEntity.body.position = vectorAdd(
           cameraEntity.body.position,
           cameraEntity.body.forces.velocity
         );
+      }
     };
 
     cameraEntity.body.transforms.rotate = () => {
-      if (cameraEntity.body?.position && cameraEntity.body.forces.velocity)
-        vectorAdd(
+      if (cameraEntity.body?.position && cameraEntity.body.forces.velocity) {
+        cameraEntity.body.rotation = vectorAdd(
           cameraEntity.body?.rotation,
           cameraEntity.body.forces.rotation
         );
+      }
     };
 
     this._meshData = {};
@@ -221,9 +221,9 @@ export class GraphicsEngine {
 
       const modelMidpoint = min.map((c, i) => (c + max[i]) / 2);
 
-      meshData.vertices.forEach((v) => {
-        v = v.map((c, i) => c - modelMidpoint[i]);
-      });
+      meshData.vertices = meshData.vertices.map((v) =>
+        v.map((c, i) => c - modelMidpoint[i])
+      );
 
       this._meshData[url] = meshData;
     }
@@ -323,39 +323,53 @@ export class GraphicsEngine {
   }
 
   private _handleWorker(evt: MessageEvent<any>) {
-    printOne(evt.data);
+    switch (evt.data.stage) {
+      case PIPELINE_STAGES.rasterization: {
+        // @ts-ignore
+        window.__VERTEX_GAME_ENGINE__?.graphics.fragmentQueue.push(
+          evt.data.fragments
+        );
+      }
+    }
   }
 
   render(entities: Record<string, Entity>) {
-    Object.keys(entities).forEach((id) => {
+    let newFragments = false;
+
+    Object.keys(entities).forEach((id, i) => {
       const entity = entities[id];
       this.render(entity.children);
 
-      const vertexOutput = this._vertexShader.compute(
-        entity,
-        this._vectorPool,
-        this._trianglePool
-      );
+      const vertexOutput = this._vertexShader.compute(entity, this.camera);
 
       if (vertexOutput) {
-        // const fragments = this._rasterizer.compute(vertexOutput);
+        const textureKey = entity.mesh?.activeTexture ?? '';
         this._worker.postMessage({
           stage: PIPELINE_STAGES.rasterization,
-          args: [vertexOutput],
+          args: {
+            vertexOutput,
+            imageData: this._textureImageData[textureKey],
+          },
         });
-        const fragments = this._fragmentQueue.pop();
+
+        const fragments = this._fragmentQueue.shift();
         if (fragments) {
-          FragmentShader.compute(
-            fragments,
-            Object.values(this.lights),
-            this._vectorPool
-          );
+          // FragmentShader.compute(
+          //   fragments,
+          //   Object.values(this.lights),
+          //   this._vectorPool
+          // );
+          newFragments = true;
           this.framebuffer.drawFragments(fragments);
         }
       }
     });
 
-    this._framebuffer.drawToScreen();
+    if (newFragments) this._framebuffer.drawToScreen();
+  }
+
+  get fragmentQueue() {
+    return this._fragmentQueue;
   }
 
   get framebuffer() {

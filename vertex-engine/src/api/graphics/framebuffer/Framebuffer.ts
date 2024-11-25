@@ -43,6 +43,7 @@ export class Framebuffer {
     const scaledWidth = this._canvas.width * scale;
     const scaledHeight = this._canvas.height * scale;
 
+    this._ctx.clearRect(0, 0, scaledWidth, scaledHeight);
     this._offscreenCtx.putImageData(this._bitmap, 0, 0);
     this._ctx.drawImage(
       this._offscreenCanvas,
