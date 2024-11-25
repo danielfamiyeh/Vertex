@@ -1,5 +1,6 @@
 import { setImageDataPixel } from '../rasterizer/Rasterizer.utils';
 import { Fragment } from '../shader';
+const scale = 1;
 
 export class Framebuffer {
   _offscreenCanvas: OffscreenCanvas;
@@ -10,7 +11,10 @@ export class Framebuffer {
     private _canvas: HTMLCanvasElement,
     private _ctx: CanvasRenderingContext2D
   ) {
-    this._offscreenCanvas = new OffscreenCanvas(_canvas.width, _canvas.height);
+    this._offscreenCanvas = new OffscreenCanvas(
+      _canvas.width * scale,
+      _canvas.height * scale
+    );
     const offscreenCtx = this._offscreenCanvas.getContext('2d', {
       alpha: false,
     });
@@ -28,16 +32,29 @@ export class Framebuffer {
       const { x, y, pixelColor } = fragment;
       setImageDataPixel(
         pixelColor,
-        x + this._canvas.width / 2,
-        y + this._canvas.height / 2,
+        Math.floor(x + (scale * this._canvas.width) / 2),
+        Math.floor(y + (scale * this._canvas.height) / 2),
         this._bitmap
       );
     });
   }
 
   drawToScreen() {
+    const scaledWidth = this._canvas.width * scale;
+    const scaledHeight = this._canvas.height * scale;
+
     this._offscreenCtx.putImageData(this._bitmap, 0, 0);
-    this._ctx.drawImage(this._offscreenCanvas, 0, 0);
+    this._ctx.drawImage(
+      this._offscreenCanvas,
+      0,
+      0,
+      this._canvas.width * scale,
+      this._canvas.height * scale,
+      0,
+      0,
+      this._canvas.width,
+      this._canvas.height
+    );
     this._bitmap.data.fill(0);
   }
 

@@ -1,4 +1,4 @@
-import { Vector } from '../../math/vector/Vector';
+import { Vector, vectorZeroes } from '../../math/vector/Vector';
 import { RigidBodyOptions } from './RigidBody.utils';
 import { Entity } from '../../game/entity/Entity';
 import { RigidBodyTransform } from './RigidBody.types';
@@ -14,8 +14,8 @@ export class RigidBody {
   private _parentEntity?: Entity;
 
   constructor(options?: RigidBodyOptions) {
-    this._position = options?.position ?? Vector.zeroes(3);
-    this._rotation = options?.rotation ?? Vector.zeroes(3);
+    this._position = options?.position ?? vectorZeroes(3);
+    this._rotation = options?.rotation ?? vectorZeroes(3);
     this._mass = options?.mass ?? 1;
     this._forces = options?.forces ?? {};
     this._transforms = options?.transforms ?? {};

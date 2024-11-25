@@ -10,8 +10,8 @@ export const GRAPHICS_ENGINE_OPTIONS_DEFAULTS: Required<GraphicsEngineOptions> =
       near: 0.01,
       far: 1000,
       fieldOfView: 90,
-      position: new Vector(0, 0, 0),
-      direction: new Vector(0, 0, -5),
+      position: [0, 0, 0],
+      direction: [0, 0, -5],
       displacement: 0.5,
       rotation: 1e-2,
     },
@@ -20,3 +20,7 @@ export const GRAPHICS_ENGINE_OPTIONS_DEFAULTS: Required<GraphicsEngineOptions> =
     },
     lights: {},
   };
+
+export const PIPELINE_STAGES = {
+  rasterization: 'rasterization',
+};

@@ -1,5 +1,5 @@
 import { Vector } from '../../math/vector/Vector';
-import { Mesh, MeshStyle } from '../mesh/Mesh';
+import { MeshStyle } from '../mesh/Mesh';
 
 export class Triangle {
   constructor(
@@ -11,22 +11,17 @@ export class Triangle {
 
   subTriangleAreas(p: Vector) {
     const {
-      points: [p0, p1, p2],
+      points: [[x0, y0], [x1, y1], [x2, y2]],
     } = this;
-    return [
-      0.5 *
-        Math.abs(
-          p.x * (p1.y - p2.y) + p1.x * (p2.y - p.y) + p2.x * (p.y - p1.y)
-        ),
-      0.5 *
-        Math.abs(
-          p0.x * (p.y - p2.y) + p.x * (p2.y - p0.y) + p2.x * (p0.y - p.y)
-        ),
-      0.5 *
-        Math.abs(
-          p0.x * (p1.y - p.y) + p1.x * (p.y - p0.y) + p.x * (p0.y - p1.y)
-        ),
-    ];
+
+    const area1 =
+      0.5 * Math.abs(p[0] * (y1 - y2) + x1 * (y2 - p[1]) + x2 * (p[1] - y1));
+    const area2 =
+      0.5 * Math.abs(x0 * (p[1] - y2) + p[0] * (y2 - y0) + x2 * (y0 - p[1]));
+    const area3 =
+      0.5 * Math.abs(x0 * (y1 - p[1]) + x1 * (p[1] - y0) + p[0] * (y0 - y1));
+
+    return [area1, area2, area3];
   }
 
   barycentricCoordinates(p: Vector) {
@@ -38,14 +33,10 @@ export class Triangle {
 
   get area() {
     const {
-      points: [p0, p1, p2],
+      points: [[x0, y0], [x1, y1], [x2, y2]],
     } = this;
-    return (
-      0.5 *
-      Math.abs(
-        p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y)
-      )
-    );
+
+    return 0.5 * Math.abs(x0 * (y1 - y2) + x1 * (y2 - y0) + x2 * (y0 - y1));
   }
 
   get points() {

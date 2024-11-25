@@ -1,10 +1,29 @@
 import { Entity } from '../../../game/entity/Entity';
-import { Matrix } from '../../../math/matrix/Matrix';
-import { Vector } from '../../../math/vector/Vector';
+import {
+  Matrix,
+  matrixMultiply,
+  matrixToVector,
+  matrixView,
+  matrixWorld,
+} from '../../../math/matrix/Matrix';
+import {
+  Vector,
+  vectorAdd,
+  vectorCross,
+  vectorDiv,
+  vectorDot,
+  vectorScale,
+  vectorSet,
+  vectorSlice,
+  vectorSub,
+  vectorToColumnMatrix,
+  vectorToRowMatrix,
+} from '../../../math/vector/Vector';
 import { Camera } from '../../camera/Camera';
 import { Triangle } from '../../triangle/Triangle';
 import { RasterObject } from '../../engine/GraphicsEngine.types';
 import { Pool } from '../../../util/pool/Pool';
+import { printOne } from '../../engine/GraphicsEngine';
 export class VertexShader {
   constructor(
     private _projectionMatrix: Matrix,
@@ -22,7 +41,7 @@ export class VertexShader {
     const mesh = entity.mesh;
     if (!mesh) return null;
 
-    const worldMatrix = Matrix.worldMatrix(
+    const worldMatrix = matrixWorld(
       entity.body?.rotation,
       entity.body?.position
     );
@@ -30,74 +49,98 @@ export class VertexShader {
     const fragments: RasterObject[] = [];
     const toPreFragments: RasterObject[] = [];
 
-    const { viewMatrix } = Matrix.viewMatrix(this._camera);
+    const { viewMatrix } = matrixView(this._camera);
 
     entity.mesh?.triangles.forEach((triangle) => {
       const worldPoints = worldMatrix
         ? triangle.points.map((tPoint) => {
-            const [[x], [y], [z], [w]] = worldMatrix.mult(tPoint.matrix).mat;
+            const [[x], [y], [z], [w]] = matrixMultiply(
+              worldMatrix,
+              vectorToColumnMatrix([...tPoint, 1])
+            );
             const point = vectorPool.get();
-            point.x = x;
-            point.y = y;
-            point.z = z;
-            point.w = w;
-            point.dim = 4;
-            return point;
+            point[0] = x;
+            point[1] = y;
+            point[2] = z;
+            point[3] = w;
+            return point.slice(0, 3);
           })
         : triangle.points;
 
-      const worldNormal = Vector.sub(worldPoints[1], worldPoints[0]).cross(
-        Vector.sub(worldPoints[2], worldPoints[0])
+      const worldNormal = vectorCross(
+        vectorSub(worldPoints[1], worldPoints[0]),
+        vectorSub(worldPoints[2], worldPoints[0])
       );
 
       const vPointToCamera = vectorPool.get();
-      vPointToCamera.x = this._camera.position.x - worldPoints[0].x;
-      vPointToCamera.y = this._camera.position.y - worldPoints[0].y;
-      vPointToCamera.z = this._camera.position.z - worldPoints[0].z;
+      vPointToCamera[0] = this._camera.position[0] - worldPoints[0][0];
+      vPointToCamera[1] = this._camera.position[1] - worldPoints[0][1];
+      vPointToCamera[2] = this._camera.position[2] - worldPoints[0][2];
 
       // TODO: Use Camera.shouldCull
-      if (vPointToCamera.dot(worldNormal) < 0) return;
+      if (vectorDot(vPointToCamera, worldNormal) < 0) return;
       vectorPool.free(vPointToCamera);
 
       const viewPoints = worldPoints
-        .map((point) => point.rowMatrix.mult(viewMatrix).vector)
+        .map((point) =>
+          matrixToVector(
+            matrixMultiply(vectorToRowMatrix([...point, 1]), viewMatrix)
+          )
+        )
         .map((v) => v.slice(0, 3));
 
       // I'm guessing a depth buffer would help with this?
-      const clippedTriangles = this._camera.frustrum.near.clipTriangle(
+      // const clippedTriangles = this._camera.frustrum.near.clipTriangle(
+      new Triangle(
+        viewPoints,
+        triangle.color,
+        triangle.style,
+        triangle.texturePoints
+      );
+      // );
+
+      const clippedTriangles = [
         new Triangle(
           viewPoints,
           triangle.color,
           triangle.style,
           triangle.texturePoints
-        )
-      );
+        ),
+      ];
 
       clippedTriangles.forEach((_triangle: Triangle) => {
-        const projectedPoints = _triangle.points.map(
-          (point) =>
-            this._projectionMatrix.mult(Vector.extended(point, 1).columnMatrix)
-              .vector
-        );
-
-        const perspectivePoints = projectedPoints.map((point) =>
-          point
-            .div(point.z)
-            .scale((this._canvasHeight / this._canvasWidth) * this._canvasScale)
-            .set(2, 1)
-            .slice(0, 3)
+        const projectedPoints = _triangle.points.map((point) =>
+          matrixToVector(
+            matrixMultiply(
+              this._projectionMatrix,
+              vectorToColumnMatrix([...point, 1])
+            )
+          )
         );
 
         // perspectivePoints.forEach((point) => {
         //   // NDC to screen
-        //   point.x *= this.canvas_canvasWidth / 2;
-        //   point.y *= this.canvasH_canvasHeight / 2;
+        //   point[0] *= this.canvas_canvasWidth / 2;
+        //   point[1] *= this.canvasH_canvasHeight / 2;
         // });
 
-        const centroid = vectorPool
-          .get()
-          .add(projectedPoints[0], projectedPoints[1], projectedPoints[2])
-          .div(3);
+        const perspectivePoints = projectedPoints.map((point) => {
+          const p = vectorDiv(point, point[2]);
+          const scaled = vectorScale(
+            p,
+            (this._canvasHeight / this._canvasWidth) * this._canvasScale
+          );
+          const updated = vectorSet(scaled, 2, 1);
+          return vectorSlice(updated, 0, 3);
+        });
+
+        const centroid = vectorDiv(
+          vectorAdd(
+            vectorAdd(projectedPoints[0], projectedPoints[1]),
+            projectedPoints[2]
+          ),
+          3
+        );
 
         worldPoints.forEach((p) => vectorPool.free(p));
 
@@ -151,4 +194,7 @@ export class VertexShader {
     // TODO: this is not clipping
     return toPreFragments;
   }
+}
+function vectorMultiply(arg0: number[][], viewMatrix: Matrix) {
+  throw new Error('Function not implemented.');
 }
