@@ -7,7 +7,7 @@ import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { RigidBodyOptions } from '../../physics/rigid-body/RigidBody.utils';
 import { Vector } from '../../math/vector/Vector';
 import { Scene } from '../scene/Scene';
-import { MeshStyle } from '@vertex/api/graphics/mesh/Mesh';
+import { MeshStyle } from '../..//graphics/mesh/Mesh';
 
 export class GameEngine {
   private _fps: number;

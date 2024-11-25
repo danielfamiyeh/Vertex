@@ -1,4 +1,4 @@
-import { Entity } from '@vertex/api/game/entity/Entity';
+import { Entity } from '../../../game/entity/Entity';
 import { Vector } from '../../../math/vector/Vector';
 import { RasterObject } from '../../engine/GraphicsEngine.types';
 import { Light } from '../../light/Light';

@@ -15,5 +15,8 @@ export const GRAPHICS_ENGINE_OPTIONS_DEFAULTS: Required<GraphicsEngineOptions> =
       displacement: 0.5,
       rotation: 1e-2,
     },
+    pool: {
+      size: 1_000_000,
+    },
     lights: {},
   };

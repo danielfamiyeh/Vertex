@@ -1,5 +1,5 @@
 import { Vector } from '../../math/vector/Vector';
-import { MeshStyle } from '../mesh/Mesh';
+import { Mesh, MeshStyle } from '../mesh/Mesh';
 
 export class Triangle {
   constructor(
@@ -52,6 +52,10 @@ export class Triangle {
     return this._points;
   }
 
+  set points(points: Vector[]) {
+    this._points = points;
+  }
+
   get color() {
     return this._color;
   }
@@ -62,6 +66,13 @@ export class Triangle {
 
   get style() {
     return this._style;
+  }
+  set style(style: MeshStyle) {
+    this._style = style;
+  }
+
+  set texturePoints(texturePoints: Vector[]) {
+    this._texturePoints = texturePoints;
   }
 
   get texturePoints() {

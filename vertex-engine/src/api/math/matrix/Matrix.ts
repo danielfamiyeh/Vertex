@@ -1,8 +1,10 @@
-import { Camera } from '../../graphics/camera/Camera';
+import { Camera, upVector } from '../../graphics/camera/Camera';
 import { Vector } from '../vector/Vector';
 
+// mult3x3
 export class Matrix {
   _mat: number[][];
+
   constructor(public rows: number, public cols: number) {
     this._mat = [];
 
@@ -17,25 +19,26 @@ export class Matrix {
   static viewMatrix(camera: Camera) {
     const { position, direction } = camera;
     const target = Vector.add(position, direction);
-    const tempYAxis = new Vector(0, 1, 0);
 
-    const newZAxis = Vector.sub(target, position).normalize();
-    const newXAxis = tempYAxis.cross(newZAxis).normalize();
-    const newYAxis = newZAxis.cross(newXAxis).normalize();
+    // const newZAxis = Vector.sub(target, position).normalize();
+    // const newXAxis = upVector.cross(newZAxis).normalize();
+    // const newYAxis = newZAxis.cross(newXAxis).normalize();
 
-    const translation = new Vector(
-      position.dot(newXAxis),
-      position.dot(newYAxis),
-      position.dot(newZAxis)
-    );
+    const newZAxis = target.sub(position);
+    const newXAxis = upVector.cross(newZAxis);
+    const newYAxis = newZAxis.cross(newXAxis);
+
+    const tx = position.dot(newXAxis);
+    const ty = position.dot(newYAxis);
+    const tz = position.dot(newZAxis);
 
     const cameraMatrix = Matrix.identity(4);
     const viewMatrix = Matrix.identity(4);
 
     cameraMatrix._mat = [
-      [...newXAxis.comps, translation.x],
-      [...newYAxis.comps, translation.z],
-      [...newZAxis.comps, translation.y],
+      [...newXAxis.comps, tx],
+      [...newYAxis.comps, ty],
+      [...newZAxis.comps, tz],
       [0, 0, 0, 1],
     ];
 
@@ -43,7 +46,7 @@ export class Matrix {
       [newXAxis.x, newYAxis.x, newZAxis.x, 0],
       [newXAxis.y, newYAxis.y, newZAxis.y, 0],
       [newXAxis.z, newYAxis.z, newZAxis.z, 0],
-      [...Vector.scale(translation, -1).comps, 1],
+      [-tx, -ty, -tz, 1],
     ];
 
     return { cameraMatrix, viewMatrix };
@@ -53,6 +56,8 @@ export class Matrix {
     rotation: Vector = new Vector(0, 0, 0),
     translation: Vector = new Vector(0, 0, 0)
   ) {
+    if (!(translation || rotation.magSquared)) return null;
+
     const xRotation = Matrix.xRotation(rotation.x);
     // TODO: Quaternions?
     const yRotation = Matrix.yRotation(rotation.y);

@@ -1,5 +1,5 @@
-import { Plane } from '@vertex/api/math/plane/Plane';
-import { Vector } from '@vertex/api/math/vector/Vector';
+import { Plane } from '../../../api/math/plane/Plane';
+import { Vector } from '../../../api/math/vector/Vector';
 
 export type CameraFrustrum = {
   near: Plane;

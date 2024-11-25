@@ -5,7 +5,6 @@ import {
   RasterObject,
 } from '../engine/GraphicsEngine.types';
 import { Fragment } from '../shader';
-import { printOne } from '../engine/GraphicsEngine';
 
 export class Rasterizer implements GraphicsPipelineStage {
   constructor(

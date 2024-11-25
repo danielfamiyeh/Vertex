@@ -5,7 +5,6 @@ import { Vector } from '../../math/vector/Vector';
 import {
   GraphicsEngineOptions,
   GraphicsPipelineStage,
-  RasterObject,
 } from './GraphicsEngine.types';
 import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from './GraphicsEngine.utils';
 import { Triangle } from '../triangle/Triangle';
@@ -18,6 +17,7 @@ import { MeshData } from '../mesh/Mesh.types';
 import { FragmentShader, VertexShader } from '../shader';
 import { Rasterizer } from '../rasterizer/Rasterizer';
 import { Framebuffer } from '../framebuffer/Framebuffer';
+import { Pool } from '../../util/pool/Pool';
 
 let printed = 0;
 export const printOne = (msg: any) => {
@@ -32,7 +32,6 @@ export class GraphicsEngine {
   private _ctx: CanvasRenderingContext2D | null;
 
   private camera: Camera;
-  private _shaders: Record<string, GraphicsPipelineStage> = {};
   private _meshData: Record<string, MeshData> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
@@ -41,6 +40,8 @@ export class GraphicsEngine {
   private _rasterizer: Rasterizer;
   private _framebuffer: Framebuffer;
   private _vertexShader: VertexShader;
+  private _vectorPool: Pool<Vector>;
+  private _trianglePool: Pool<Triangle>;
 
   constructor(
     private _canvas = document.getElementById('canvas') as HTMLCanvasElement,
@@ -93,6 +94,16 @@ export class GraphicsEngine {
       _canvas.width,
       _canvas.height,
       this.scale
+    );
+
+    this._vectorPool = new Pool(
+      () => new Vector(),
+      _options.pool.size as number
+    );
+
+    this._trianglePool = new Pool(
+      () => new Triangle([], '', 'stroke'),
+      _options.pool.size as number
     );
 
     this._framebuffer = new Framebuffer(this._canvas, this._ctx);
@@ -277,8 +288,6 @@ export class GraphicsEngine {
         const image = evt.target as HTMLImageElement;
         this._textures[key] = image;
         const canvas = document.createElement('canvas');
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
         const ctx = canvas.getContext('2d', { alpha: false });
 
         canvas.width = image.naturalWidth;
@@ -303,7 +312,11 @@ export class GraphicsEngine {
       const entity = entities[id];
       this.render(entity.children);
 
-      const vertexOutput = this._vertexShader.compute(entity);
+      const vertexOutput = this._vertexShader.compute(
+        entity,
+        this._vectorPool,
+        this._trianglePool
+      );
 
       if (vertexOutput) {
         const fragments = this._rasterizer.compute(vertexOutput);

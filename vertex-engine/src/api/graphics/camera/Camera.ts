@@ -3,7 +3,7 @@ import { Vector } from '../../math/vector/Vector';
 import { CameraFrustrum, CameraOptions } from './Camera.types';
 import { GameEngine } from '../../game/engine/GameEngine';
 
-const upVector = new Vector(0, 1, 0);
+export const upVector = new Vector(0, 1, 0);
 
 export class Camera {
   private _frustrum: CameraFrustrum;

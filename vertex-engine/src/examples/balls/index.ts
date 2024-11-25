@@ -4,7 +4,7 @@ import { Vector } from '../../api/math/vector/Vector';
 export const initBallsExample = async (gameEngine: GameEngine) => {
   const earth = await gameEngine.createEntity('earth', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
     },
     physics: {
       position: new Vector(5, 5, 0),
@@ -27,7 +27,7 @@ export const initBallsExample = async (gameEngine: GameEngine) => {
 
   const mars = await gameEngine.createEntity('mars', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
     },
     physics: {
       position: new Vector(0, 0, -25),

@@ -20,7 +20,7 @@ const fGravity = (entityA: Entity, entityB: Entity) => {
 export const initTwoBodyProblemExample = async (gameEngine: GameEngine) => {
   const earth = await gameEngine.createEntity('earth', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
     },
     physics: {
       position: new Vector(8, 5, -5),
@@ -48,7 +48,7 @@ export const initTwoBodyProblemExample = async (gameEngine: GameEngine) => {
 
   const moon = await gameEngine.createEntity('moon', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
       scale: Vector.uniform(0.25, 3),
     },
     physics: {

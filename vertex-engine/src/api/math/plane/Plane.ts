@@ -58,7 +58,7 @@ export class Plane {
    * @returns {number}     Distance from plane in arbitrary units
    */
   pointDistance(point: Vector): number {
-    return (this.normal.dot(point) + this.d) / this.normal.mag;
+    return this.normal.dot(point) + this.d;
   }
 
   /**

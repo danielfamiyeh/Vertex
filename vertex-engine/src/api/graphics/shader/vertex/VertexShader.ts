@@ -1,14 +1,11 @@
-import { Entity } from '@vertex/api/game/entity/Entity';
+import { Entity } from '../../../game/entity/Entity';
 import { Matrix } from '../../../math/matrix/Matrix';
 import { Vector } from '../../../math/vector/Vector';
 import { Camera } from '../../camera/Camera';
 import { Triangle } from '../../triangle/Triangle';
-import {
-  GraphicsPipelineStage,
-  RasterObject,
-} from '../../engine/GraphicsEngine.types';
-
-export class VertexShader implements GraphicsPipelineStage {
+import { RasterObject } from '../../engine/GraphicsEngine.types';
+import { Pool } from '../../../util/pool/Pool';
+export class VertexShader {
   constructor(
     private _projectionMatrix: Matrix,
     private _camera: Camera,
@@ -17,7 +14,11 @@ export class VertexShader implements GraphicsPipelineStage {
     private _canvasScale: number
   ) {}
 
-  compute(entity: Entity) {
+  compute(
+    entity: Entity,
+    vectorPool: Pool<Vector>,
+    trianglePool: Pool<Triangle>
+  ) {
     const mesh = entity.mesh;
     if (!mesh) return null;
 
@@ -26,30 +27,37 @@ export class VertexShader implements GraphicsPipelineStage {
       entity.body?.position
     );
 
-    const preFragments: RasterObject[] = [];
+    const fragments: RasterObject[] = [];
     const toPreFragments: RasterObject[] = [];
 
     const { viewMatrix } = Matrix.viewMatrix(this._camera);
 
     entity.mesh?.triangles.forEach((triangle) => {
-      const worldPoints = triangle.points.map(
-        (point) => worldMatrix.mult(point.matrix).vector
+      const worldPoints = worldMatrix
+        ? triangle.points.map((tPoint) => {
+            const [[x], [y], [z], [w]] = worldMatrix.mult(tPoint.matrix).mat;
+            const point = vectorPool.get();
+            point.x = x;
+            point.y = y;
+            point.z = z;
+            point.w = w;
+            point.dim = 4;
+            return point;
+          })
+        : triangle.points;
+
+      const worldNormal = Vector.sub(worldPoints[1], worldPoints[0]).cross(
+        Vector.sub(worldPoints[2], worldPoints[0])
       );
 
-      const worldNormal = Vector.sub(worldPoints[1], worldPoints[0])
-        .cross(Vector.sub(worldPoints[2], worldPoints[0]))
-        .normalize()
-        .extend(0);
-
-      const raySimilarity = Vector.sub(
-        Vector.extended(this._camera.position, 1),
-        worldPoints[0]
-      )
-        .normalize()
-        .dot(worldNormal);
+      const vPointToCamera = vectorPool.get();
+      vPointToCamera.x = this._camera.position.x - worldPoints[0].x;
+      vPointToCamera.y = this._camera.position.y - worldPoints[0].y;
+      vPointToCamera.z = this._camera.position.z - worldPoints[0].z;
 
       // TODO: Use Camera.shouldCull
-      if (raySimilarity < 0) return;
+      if (vPointToCamera.dot(worldNormal) < 0) return;
+      vectorPool.free(vPointToCamera);
 
       const viewPoints = worldPoints
         .map((point) => point.rowMatrix.mult(viewMatrix).vector)
@@ -86,18 +94,23 @@ export class VertexShader implements GraphicsPipelineStage {
         //   point.y *= this.canvasH_canvasHeight / 2;
         // });
 
+        const centroid = vectorPool
+          .get()
+          .add(projectedPoints[0], projectedPoints[1], projectedPoints[2])
+          .div(3);
+
+        worldPoints.forEach((p) => vectorPool.free(p));
+
+        const triangle = trianglePool.get();
+        triangle.points = perspectivePoints;
+        triangle.color = _triangle.color;
+        triangle.style = _triangle.style;
+        triangle.texturePoints = _triangle.texturePoints;
+
         toPreFragments.push({
-          triangle: new Triangle(
-            perspectivePoints,
-            _triangle.color,
-            _triangle.style,
-            _triangle.texturePoints
-          ),
+          triangle: triangle,
           worldNormal,
-          centroid: Vector.add(
-            Vector.add(projectedPoints[0], projectedPoints[1]),
-            projectedPoints[2]
-          ).div(3),
+          centroid,
           activeTexture: mesh.activeTexture,
         });
       });

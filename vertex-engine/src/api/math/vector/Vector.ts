@@ -294,15 +294,21 @@ export class Vector {
     return this.comps[3];
   }
 
+  set w(val: number) {
+    this.comps[3] = val;
+  }
+
+  get magSquared() {
+    return this.comps.map((comp) => comp * comp).reduce((a, b) => a + b);
+  }
+
   /**
    * Returns magnitude of vector
    *
    * @returns {number} Vector magnitude
    */
   get mag(): number {
-    return Math.sqrt(
-      this.comps.map((comp) => comp * comp).reduce((a, b) => a + b)
-    );
+    return Math.sqrt(this.magSquared);
   }
 
   get rowMatrix() {
