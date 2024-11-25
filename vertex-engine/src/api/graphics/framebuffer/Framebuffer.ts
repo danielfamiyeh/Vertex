@@ -6,6 +6,8 @@ export class Framebuffer {
   _offscreenCanvas: OffscreenCanvas;
   _offscreenCtx: OffscreenCanvasRenderingContext2D;
   _bitmap: ImageData;
+  private _xDenom: number;
+  private _yDenom: number;
 
   constructor(
     private _canvas: HTMLCanvasElement,
@@ -24,6 +26,8 @@ export class Framebuffer {
     this._offscreenCtx = <OffscreenCanvasRenderingContext2D>offscreenCtx;
     this._offscreenCtx.imageSmoothingEnabled = false;
 
+    this._xDenom = (scale * this._canvas.width) / 2;
+    this._yDenom = (scale * this._canvas.height) / 2;
     this._bitmap = new ImageData(_canvas.width, _canvas.height);
   }
 
@@ -32,8 +36,8 @@ export class Framebuffer {
       const { x, y, pixelColor } = fragment;
       setImageDataPixel(
         pixelColor,
-        Math.floor(x + (scale * this._canvas.width) / 2),
-        Math.floor(y + (scale * this._canvas.height) / 2),
+        Math.floor(x + this._xDenom),
+        Math.floor(y + this._yDenom),
         this._bitmap
       );
     });

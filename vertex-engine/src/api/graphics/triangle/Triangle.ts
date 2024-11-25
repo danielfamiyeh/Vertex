@@ -9,6 +9,19 @@ export class Triangle {
     private _texturePoints: Vector[] = []
   ) {}
 
+  baryCentricGradients() {
+    const {
+      points: [[x0, y0], [x1, y1], [x2, y2]],
+    } = this;
+    const area = this.area;
+
+    return [
+      { x: (y2 - y1) / area, y: (x1 - x2) / area },
+      { x: (y0 - y2) / area, y: (x2 - x0) / area },
+      { x: (y1 - y0) / area, y: (x0 - x1) / area },
+    ];
+  }
+
   subTriangleAreas(p: Vector) {
     const {
       points: [[x0, y0], [x1, y1], [x2, y2]],

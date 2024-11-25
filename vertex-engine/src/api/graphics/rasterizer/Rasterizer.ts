@@ -4,7 +4,6 @@ import {
   vectorScale,
   vectorSub,
 } from '../../math/vector/Vector';
-import { getImageDataAtPixel } from './Rasterizer.utils';
 import { RasterObject } from '../engine/GraphicsEngine.types';
 import { Fragment } from '../shader';
 
@@ -47,47 +46,73 @@ export class Rasterizer {
     return partialFragments;
   }
 
-  static compute(raster: RasterObject[], textureImageData: ImageData) {
+  static compute(
+    raster: RasterObject[],
+    textureImageData: ImageData,
+    screenBounds: { width: number; height: number }
+  ) {
     const buffer: Fragment[] = [];
 
     raster.forEach(({ triangle, worldNormal, centroid }, i) => {
       const {
         points: [p1, p2, p3],
       } = triangle;
+      const [[x1, y1], [x2, y2], [x3, y3]] = [p1, p2, p3];
+      const bounds = {
+        xMin: Math.min(x1, x2, x3),
+        xMax: Math.max(x1, x2, x3),
+        yMin: Math.min(y1, y2, y3),
+        yMax: Math.max(y1, y2, y3),
+      };
+
+      const a1 = y2 - y1,
+        b1 = x1 - x2,
+        c1 = x2 * y1 - x1 * y2;
+      const a2 = y3 - y2,
+        b2 = x2 - x3,
+        c2 = x3 * y2 - x2 * y3;
+      const a3 = y1 - y3,
+        b3 = x3 - x1,
+        c3 = x1 * y3 - x3 * y1;
 
       if (textureImageData) {
-        const [[x1, y1], [x2, y2], [x3, y3]] = [p1, p2, p3];
-        const bounds = {
-          xMin: Math.min(x1, x2, x3),
-          xMax: Math.max(x1, x2, x3),
-          yMin: Math.min(y1, y2, y3),
-          yMax: Math.max(y1, y2, y3),
-        };
+        bounds.xMin = Math.max(bounds.xMin, -(screenBounds.width / 2));
+        bounds.yMin = Math.max(bounds.yMin, -(screenBounds.height / 2));
+        bounds.yMax = Math.min(bounds.yMax, screenBounds.height / 2 - 1);
+        bounds.xMax = Math.min(bounds.xMax, screenBounds.width / 2 - 1);
 
-        for (let x = bounds.xMin; x <= bounds.xMax; x++) {
-          for (let y = bounds.yMin; y <= bounds.yMax; y++) {
+        for (let y = bounds.yMin; y <= bounds.yMax; y++) {
+          for (let x = bounds.xMin; x <= bounds.xMax; x++) {
             const p = [x, y];
 
-            const barycentricCoordinates = triangle.barycentricCoordinates(p);
-            const pointLiesInTriangle =
-              Math.abs(barycentricCoordinates.reduce((a, b) => a + b, 0) - 1) <=
-              1e-6;
+            const edge1 = a1 * x + b1 * y + c1;
+            const edge2 = a2 * x + b2 * y + c2;
+            const edge3 = a3 * x + b3 * y + c3;
 
-            if (pointLiesInTriangle) {
+            if (edge1 >= 0 && edge2 >= 0 && edge3 >= 0) {
+              const barycentricCoordinates = triangle.barycentricCoordinates(p);
+
               const uvInterpolated = triangle.texturePoints
                 .map((tp, i) => vectorScale(tp, barycentricCoordinates[i]))
                 .reduce(([u1, v1], [u2, v2]) => [u1 + u2, v1 + v2], [0, 0]);
 
+              const texX = Math.floor(
+                uvInterpolated[0] * textureImageData.width
+              );
+              const texY = Math.floor(
+                (1 - uvInterpolated[1]) * textureImageData.height
+              );
+
+              const index = (texY * textureImageData.width + texX) * 4;
+              const r = textureImageData.data[index];
+              const g = textureImageData.data[index + 1];
+              const b = textureImageData.data[index + 2];
+              const a = textureImageData.data[index + 3];
+
               const fragment = {
                 x: Math.floor(x),
                 y: -Math.floor(y),
-                pixelColor: getImageDataAtPixel(
-                  // Technically the job of a fragment shader (I think?)
-                  // But may as well do this here to save interpolating again
-                  Math.floor(uvInterpolated[0] * textureImageData.width),
-                  Math.floor((1 - uvInterpolated[1]) * textureImageData.height),
-                  textureImageData
-                ),
+                pixelColor: [r, g, b, a],
                 worldNormal,
                 centroid,
               };

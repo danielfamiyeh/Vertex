@@ -5,7 +5,6 @@ const gameEngine = new GameEngine({
   graphics: {
     fps: 30,
     style: 'stroke',
-    scale: 300,
     camera: {
       near: 0.1,
       far: 1000,

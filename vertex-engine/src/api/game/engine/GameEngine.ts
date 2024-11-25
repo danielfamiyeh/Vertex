@@ -1,4 +1,4 @@
-import { GraphicsEngine, printOne } from '../../graphics/engine/GraphicsEngine';
+import { GraphicsEngine } from '../../graphics/engine/GraphicsEngine';
 import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from '../../graphics/engine/GraphicsEngine.utils';
 import { PhysicsEngine } from '../../physics/engine/PhysicsEngine';
 import { GameEngineOptions } from './GameEngine.utils';
