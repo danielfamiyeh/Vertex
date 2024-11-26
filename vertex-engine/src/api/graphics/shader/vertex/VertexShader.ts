@@ -18,6 +18,7 @@ import {
 import { Camera } from '../../camera/Camera';
 import { Triangle } from '../../triangle/Triangle';
 import { RasterObject } from '../../engine/GraphicsEngine.types';
+
 export class VertexShader {
   constructor(
     private _projectionMatrix: Matrix,

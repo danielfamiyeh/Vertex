@@ -1,3 +1,5 @@
+import { Matrix } from '../matrix/Matrix';
+
 export type Vector = number[];
 
 export function vectorCreate(...comps: number[]): Vector {

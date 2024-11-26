@@ -47,7 +47,6 @@ export class GraphicsEngine {
   private _vertexShader: VertexShader;
   private _vectorPool: Pool<Vector>;
   private _trianglePool: Pool<Triangle>;
-  private _worker: Worker = new Worker('GraphicsEngine.worker.ts');
   private _fragmentQueue: Fragment[][] = [];
 
   constructor(
@@ -135,14 +134,6 @@ export class GraphicsEngine {
     };
 
     this._meshData = {};
-
-    if (!this._worker) {
-      alert(
-        'Web workers are not supported by your browser.\nThis will have an effect on performance'
-      );
-    } else {
-      this._worker.onmessage = this._handleWorker;
-    }
   }
 
   async loadMesh(

@@ -1,9 +1,4 @@
-import {
-  Vector,
-  vectorAdd,
-  vectorScale,
-  vectorSub,
-} from '../../math/vector/Vector';
+import { Vector, vectorScale, vectorSub } from '../../math/vector/Vector';
 import { RasterObject } from '../engine/GraphicsEngine.types';
 import { Fragment } from '../shader';
 
@@ -18,13 +13,11 @@ export class Rasterizer {
   ) {
     const partialFragments: Fragment[] = [];
 
-    if (dydx === Infinity) {
-      const _startPoint = endPoint[1] > startPoint[1] ? startPoint : endPoint;
-      const _endPoint = startPoint === endPoint ? startPoint : endPoint;
-
-      for (let y = _startPoint[1]; y <= _endPoint[1]; y++) {
+    if (Math.abs(dydx) === Infinity) {
+      const [minY, maxY] = [startPoint[1], endPoint[1]].sort((a, b) => a - b);
+      for (let y = minY; y <= maxY; y++) {
         partialFragments.push({
-          x: _startPoint[0],
+          x: startPoint[0],
           y: -y,
           worldNormal,
           centroid,
@@ -32,10 +25,12 @@ export class Rasterizer {
         });
       }
     } else {
-      for (let x = startPoint[0]; x <= endPoint[0]; x++) {
+      const [minX, maxX] = [startPoint[0], endPoint[0]].sort((a, b) => a - b);
+      for (let x = minX; x <= maxX; x++) {
+        const y = Math.floor(startPoint[1] + dydx * (x - startPoint[0]));
         partialFragments.push({
           x: Math.floor(x),
-          y: Math.floor(-(startPoint[1] + dydx * (x - startPoint[0]))),
+          y: -y,
           worldNormal,
           centroid,
           pixelColor,
@@ -64,16 +59,11 @@ export class Rasterizer {
         yMin: Math.min(y1, y2, y3),
         yMax: Math.max(y1, y2, y3),
       };
-
-      const a1 = y2 - y1,
-        b1 = x1 - x2,
-        c1 = x2 * y1 - x1 * y2;
-      const a2 = y3 - y2,
-        b2 = x2 - x3,
-        c2 = x3 * y2 - x2 * y3;
-      const a3 = y1 - y3,
-        b3 = x3 - x1,
-        c3 = x1 * y3 - x3 * y1;
+      const edges = [
+        { a: y2 - y1, b: x1 - x2, c: x2 * y1 - x1 * y2 },
+        { a: y3 - y2, b: x2 - x3, c: x3 * y2 - x2 * y3 },
+        { a: y1 - y3, b: x3 - x1, c: x1 * y3 - x3 * y1 },
+      ];
 
       if (textureImageData) {
         bounds.xMin = Math.max(bounds.xMin, -(screenBounds.width / 2));
@@ -85,11 +75,12 @@ export class Rasterizer {
           for (let x = bounds.xMin; x <= bounds.xMax; x++) {
             const p = [x, y];
 
-            const edge1 = a1 * x + b1 * y + c1;
-            const edge2 = a2 * x + b2 * y + c2;
-            const edge3 = a3 * x + b3 * y + c3;
+            const isInsideTriangle =
+              edges[0].a * x + edges[0].b * y + edges[0].c > 0 &&
+              edges[1].a * x + edges[1].b * y + edges[1].c > 0 &&
+              edges[2].a * x + edges[2].b * y + edges[2].c > 0;
 
-            if (edge1 >= 0 && edge2 >= 0 && edge3 >= 0) {
+            if (isInsideTriangle) {
               const barycentricCoordinates = triangle.barycentricCoordinates(p);
 
               const uvInterpolated = triangle.texturePoints

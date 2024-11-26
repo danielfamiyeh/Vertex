@@ -1,4 +1,3 @@
-import { setImageDataPixel } from '../rasterizer/Rasterizer.utils';
 import { Fragment } from '../shader';
 const scale = 1;
 
@@ -32,22 +31,24 @@ export class Framebuffer {
   }
 
   drawFragments(fragments: Fragment[]) {
-    fragments.forEach((fragment) => {
-      const { x, y, pixelColor } = fragment;
-      setImageDataPixel(
-        pixelColor,
-        Math.floor(x + this._xDenom),
-        Math.floor(y + this._yDenom),
-        this._bitmap
-      );
-    });
+    const data = this._bitmap.data;
+    const width = this._bitmap.width;
+    const denomX = this._xDenom;
+    const denomY = this._yDenom;
+
+    for (let i = 0; i < fragments.length; i++) {
+      const { x, y, pixelColor } = fragments[i];
+      const index =
+        (Math.floor(y + denomY) * width + Math.floor(x + denomX)) * 4;
+
+      data[index] = pixelColor[0];
+      data[index + 1] = pixelColor[1];
+      data[index + 2] = pixelColor[2];
+      data[index + 3] = pixelColor[3];
+    }
   }
 
   drawToScreen() {
-    const scaledWidth = this._canvas.width * scale;
-    const scaledHeight = this._canvas.height * scale;
-
-    this._ctx.clearRect(0, 0, scaledWidth, scaledHeight);
     this._offscreenCtx.putImageData(this._bitmap, 0, 0);
     this._ctx.drawImage(
       this._offscreenCanvas,
