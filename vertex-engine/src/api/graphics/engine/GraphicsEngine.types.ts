@@ -6,10 +6,6 @@ import { Fragment } from '../shader';
 
 export type GraphicsEngineOptions = {
   style?: 'fill' | 'stroke';
-  pool?: {
-    size?: number;
-    maxSize?: number;
-  };
   camera?: {
     near: number;
     far: number;

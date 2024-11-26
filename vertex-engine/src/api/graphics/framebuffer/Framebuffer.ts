@@ -1,5 +1,5 @@
 import { Fragment } from '../shader';
-const scale = 1;
+export const quality = 1;
 
 export class Framebuffer {
   _offscreenCanvas: OffscreenCanvas;
@@ -13,8 +13,8 @@ export class Framebuffer {
     private _ctx: CanvasRenderingContext2D
   ) {
     this._offscreenCanvas = new OffscreenCanvas(
-      _canvas.width * scale,
-      _canvas.height * scale
+      _canvas.width * quality,
+      _canvas.height * quality
     );
     const offscreenCtx = this._offscreenCanvas.getContext('2d', {
       alpha: false,
@@ -25,8 +25,8 @@ export class Framebuffer {
     this._offscreenCtx = <OffscreenCanvasRenderingContext2D>offscreenCtx;
     this._offscreenCtx.imageSmoothingEnabled = false;
 
-    this._xDenom = (scale * this._canvas.width) / 2;
-    this._yDenom = (scale * this._canvas.height) / 2;
+    this._xDenom = (quality * this._canvas.width) / 2;
+    this._yDenom = (quality * this._canvas.height) / 2;
     this._bitmap = new ImageData(_canvas.width, _canvas.height);
   }
 
@@ -54,8 +54,8 @@ export class Framebuffer {
       this._offscreenCanvas,
       0,
       0,
-      this._canvas.width * scale,
-      this._canvas.height * scale,
+      this._canvas.width * quality,
+      this._canvas.height * quality,
       0,
       0,
       this._canvas.width,

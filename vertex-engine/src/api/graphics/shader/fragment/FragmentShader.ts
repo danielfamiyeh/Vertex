@@ -1,16 +1,11 @@
 import { Vector } from '../../../math/vector/Vector';
 import { Light } from '../../light/Light';
 import { Fragment } from './FragmentShader.types';
-import { Pool } from '../../../util/pool/Pool';
 
 export class FragmentShader {
   constructor() {}
 
-  static illuminate(
-    fragment: Fragment,
-    lights: Light[],
-    vectorPool: Pool<Vector>
-  ) {
+  static illuminate(fragment: Fragment, lights: Light[]) {
     const { centroid, worldNormal, pixelColor } = fragment;
 
     // lights.forEach((light) => {
@@ -32,13 +27,9 @@ export class FragmentShader {
     return fragment;
   }
 
-  static compute(
-    fragments: Fragment[],
-    lights: Light[],
-    vectorPool: Pool<Vector>
-  ) {
+  static compute(fragments: Fragment[], lights: Light[]) {
     fragments.forEach((fragment: Fragment) => {
-      FragmentShader.illuminate(fragment, lights, vectorPool);
+      FragmentShader.illuminate(fragment, lights);
     });
 
     return fragments;

@@ -7,7 +7,7 @@ import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { RigidBodyOptions } from '../../physics/rigid-body/RigidBody.utils';
 import { Vector, vectorUniform } from '../../math/vector/Vector';
 import { Scene } from '../scene/Scene';
-import { MeshStyle } from '../..//graphics/mesh/Mesh';
+import { MeshStyle } from '../../graphics/mesh/Mesh';
 
 export class GameEngine {
   private _fps: number;
@@ -46,6 +46,7 @@ export class GameEngine {
       );
       this.graphics.render(this._scene.root.children);
       this._lastFrame = now - (delta % interval);
+      console.log(1 / delta);
     }
 
     window.requestAnimationFrame(() => this.start());

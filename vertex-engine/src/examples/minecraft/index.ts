@@ -1,25 +1,24 @@
-import { Vector, vectorAdd, vectorUniform } from '../../api/math/vector/Vector';
+import { vectorAdd, vectorUniform } from '../../api/math/vector/Vector';
 import { GameEngine } from '../../api/game/engine/GameEngine';
-import { Entity } from '../../api/game/entity/Entity';
 import { AmbientLight } from '../../api/graphics/light/AmbientLight';
 import { Color } from '../../api/graphics/color/Color';
 import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
 
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
-  // const cube = await gameEngine.createEntity('cube', {
-  //   graphics: {
-  //     mesh: 'http://127.0.0.1:8080/models/cube.obj',
-  //     textures: [
-  //       { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
-  //     ],
-  //     scale: vectorUniform(5, 3),
-  //     style: 'stroke',
-  //   },
-  //   physics: {
-  //     position: [0, 5, -15],
-  //     rotation: [20, 30, 0],
-  //   },
-  // });
+  const cube = await gameEngine.createEntity('cube', {
+    graphics: {
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
+      textures: [
+        { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
+      ],
+      scale: vectorUniform(5, 3),
+      style: 'stroke',
+    },
+    physics: {
+      position: [-10, 5, -15],
+      rotation: [20, 30, 0],
+    },
+  });
 
   // const sphere2 = await gameEngine.createEntity('sphere', {
   //   graphics: {
@@ -87,12 +86,13 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     },
   });
 
-  castle.body?.addForce('rotation', [0, 1, 0]);
-  castle.body?.addTransform('rotate', (_, self) => {
+  cube.body?.addForce('rotation', [0, 1, 0]);
+  cube.body?.addTransform('rotate', (_, self) => {
     self.rotation = vectorAdd(self.rotation, self.forces.rotation);
   });
 
-  gameEngine.addToScene({ castle });
+  cube.mesh?.activeTexture = 'cubeMain';
+  gameEngine.addToScene({ castle, cube });
 
   console.log(castle);
   console.log({ gameEngine });

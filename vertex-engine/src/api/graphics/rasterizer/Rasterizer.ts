@@ -1,4 +1,5 @@
 import { Vector, vectorScale, vectorSub } from '../../math/vector/Vector';
+import { printOne } from '../engine/GraphicsEngine';
 import { RasterObject } from '../engine/GraphicsEngine.types';
 import { Fragment } from '../shader';
 
