@@ -6,30 +6,30 @@ import { Color } from '../../api/graphics/color/Color';
 import { DirectionalLight } from '../../api/graphics/light/DirectionalLight';
 
 export const initMinecraftExample = async (gameEngine: GameEngine) => {
-  const cube = await gameEngine.createEntity('cube', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/models/cube.obj',
-      textures: [
-        { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
-      ],
-      scale: vectorUniform(5, 3),
-      style: 'stroke',
-    },
-    physics: {
-      position: [0, 5, -15],
-      rotation: [20, 30, 0],
-    },
-  });
+  // const cube = await gameEngine.createEntity('cube', {
+  //   graphics: {
+  //     mesh: 'http://127.0.0.1:8080/models/cube.obj',
+  //     textures: [
+  //       { key: 'cubeMain', url: 'http://127.0.0.1:8080/sprites/cube.png' },
+  //     ],
+  //     scale: vectorUniform(5, 3),
+  //     style: 'stroke',
+  //   },
+  //   physics: {
+  //     position: [0, 5, -15],
+  //     rotation: [20, 30, 0],
+  //   },
+  // });
 
-  const sphere2 = await gameEngine.createEntity('sphere', {
-    graphics: {
-      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
-      scale: vectorUniform(2, 3),
-    },
-    physics: {
-      position: [-20, 0, 5],
-    },
-  });
+  // const sphere2 = await gameEngine.createEntity('sphere', {
+  //   graphics: {
+  //     mesh: 'http://127.0.0.1:8080/models/sphere.obj',
+  //     scale: vectorUniform(2, 3),
+  //   },
+  //   physics: {
+  //     position: [-20, 0, 5],
+  //   },
+  // });
 
   // const sphere3 = await gameEngine.createEntity('sphere', {
   //   graphics: {
@@ -41,14 +41,9 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   //   },
   // });
 
-  const shapes = new Entity('shapes')
-    .setRigidBody()
-    .addChildren({ cube, sphere2 });
-
-  shapes.body?.addForce('rotation', [2, 1, 0]);
-  shapes.body?.addTransform('rotate', (_, self) => {
-    self.rotation = vectorAdd(self.rotation, self.forces.rotation);
-  });
+  // const shapes = new Entity('shapes')
+  //   .setRigidBody()
+  //   .addChildren({ cube, sphere2 });
 
   gameEngine.graphics.lights.ambient = new AmbientLight(
     new Color([1, 0, 0], 'rgb')
@@ -79,10 +74,27 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   //   20
   // );
 
-  if (cube.mesh) cube.mesh.activeTexture = 'cubeMain';
+  // if (cube.mesh) cube.mesh.activeTexture = 'cubeMain';
 
-  gameEngine.addToScene({ shapes });
+  // gameEngine.addToScene({ shapes });
 
+  const castle = await gameEngine.createEntity('castle', {
+    graphics: {
+      mesh: 'http://127.0.0.1:8080/models/peaches-castle/Peaches Castle.obj',
+    },
+    physics: {
+      position: [0, 0, 0],
+    },
+  });
+
+  castle.body?.addForce('rotation', [0, 1, 0]);
+  castle.body?.addTransform('rotate', (_, self) => {
+    self.rotation = vectorAdd(self.rotation, self.forces.rotation);
+  });
+
+  gameEngine.addToScene({ castle });
+
+  console.log(castle);
   console.log({ gameEngine });
   gameEngine.start();
 };

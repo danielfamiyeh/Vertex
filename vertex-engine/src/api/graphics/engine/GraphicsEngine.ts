@@ -335,15 +335,6 @@ export class GraphicsEngine {
 
       if (vertexOutput) {
         const textureKey = entity.mesh?.activeTexture ?? '';
-        // this._worker.postMessage({
-        //   stage: PIPELINE_STAGES.rasterization,
-        //   args: {
-        //     vertexOutput,
-        //     imageData: this._textureImageData[textureKey],
-        //   },
-        // });
-
-        // const fragments = this._fragmentQueue.shift();
         const fragments = Rasterizer.compute(
           vertexOutput,
           this._textureImageData[textureKey],
@@ -353,11 +344,6 @@ export class GraphicsEngine {
           }
         );
         if (fragments) {
-          // FragmentShader.compute(
-          //   fragments,
-          //   Object.values(this.lights),
-          //   this._vectorPool
-          // );
           newFragments = true;
           this.framebuffer.drawFragments(fragments);
         }
