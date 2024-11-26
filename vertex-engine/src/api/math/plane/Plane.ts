@@ -1,14 +1,21 @@
 import { printOne } from '../../graphics/engine/GraphicsEngine';
 import { Triangle } from '../../graphics/triangle/Triangle';
-import { Vector } from '../vector/Vector';
+import {
+  Vector,
+  vectorCross,
+  vectorDot,
+  vectorNormalize,
+  vectorScale,
+  vectorSub,
+} from '../vector/Vector';
 import { ClipMap, LinePlaneIntersection } from './Plane.types';
 
 export class Plane {
   private _d: number;
 
   constructor(private _point: Vector, private _normal: Vector) {
-    this._normal.normalize();
-    this._d = _point.dot(this.normal);
+    vectorNormalize(this._normal);
+    this._d = vectorDot(this._normal, this.point);
   }
 
   /**
@@ -20,11 +27,11 @@ export class Plane {
    * @returns {Plane}     Plane constructed from three position vectors
    */
   static fromPoints(p: Vector, q: Vector, r: Vector): Plane {
-    const position = p.copy();
-    const pq = q.copy().sub(p);
-    const pr = r.copy().sub(p);
+    const position = [...p];
+    const pq = vectorSub([...p], p);
+    const pr = vectorSub([...r], p);
 
-    const normal = pq.cross(pr);
+    const normal = vectorCross(pq, pr);
 
     return new Plane(position, normal);
   }
@@ -40,15 +47,15 @@ export class Plane {
    * @returns {Vector | null}     Returns Vector if ray intersects plane, else null
    */
   intersectRay(startPoint: Vector, endPoint: Vector): LinePlaneIntersection {
-    const ray = Vector.sub(endPoint, startPoint).normalize();
-    const bottom = ray.dot(this._normal);
-    const top = Vector.sub(this._point, startPoint)
-      .normalize()
-      .dot(this._normal);
-
+    const ray = vectorNormalize(vectorSub(endPoint, startPoint));
+    const bottom = vectorDot(ray, this._normal);
+    const top = vectorDot(
+      vectorNormalize(vectorSub(this._point, startPoint)),
+      this._normal
+    );
     const t = top / bottom;
 
-    return { t, ray: ray.scale(t) };
+    return { t, ray: vectorScale(ray, t) };
   }
 
   /**
@@ -58,7 +65,7 @@ export class Plane {
    * @returns {number}     Distance from plane in arbitrary units
    */
   pointDistance(point: Vector): number {
-    return (this.normal.dot(point) + this.d) / this.normal.mag;
+    return vectorDot(this.normal, point) + this.d;
   }
 
   /**

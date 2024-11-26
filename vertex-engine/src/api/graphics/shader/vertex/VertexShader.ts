@@ -1,14 +1,25 @@
-import { Entity } from '@vertex/api/game/entity/Entity';
-import { Matrix } from '../../../math/matrix/Matrix';
-import { Vector } from '../../../math/vector/Vector';
+import { Entity } from '../../../game/entity/Entity';
+import {
+  Matrix,
+  matrixMultiply,
+  matrixToVector,
+  matrixView,
+  matrixWorld,
+} from '../../../math/matrix/Matrix';
+import {
+  vectorCross,
+  vectorDiv,
+  vectorDot,
+  vectorScale,
+  vectorSub,
+  vectorToColumnMatrix,
+  vectorToRowMatrix,
+} from '../../../math/vector/Vector';
 import { Camera } from '../../camera/Camera';
 import { Triangle } from '../../triangle/Triangle';
-import {
-  GraphicsPipelineStage,
-  RasterObject,
-} from '../../engine/GraphicsEngine.types';
+import { RasterObject } from '../../engine/GraphicsEngine.types';
 
-export class VertexShader implements GraphicsPipelineStage {
+export class VertexShader {
   constructor(
     private _projectionMatrix: Matrix,
     private _camera: Camera,
@@ -17,125 +28,89 @@ export class VertexShader implements GraphicsPipelineStage {
     private _canvasScale: number
   ) {}
 
-  compute(entity: Entity) {
+  compute(entity: Entity, camera: Camera) {
     const mesh = entity.mesh;
     if (!mesh) return null;
 
-    const worldMatrix = Matrix.worldMatrix(
+    const worldMatrix = matrixWorld(
       entity.body?.rotation,
       entity.body?.position
     );
 
-    const preFragments: RasterObject[] = [];
+    const { viewMatrix } = matrixView(camera);
+
+    const fragments: RasterObject[] = [];
     const toPreFragments: RasterObject[] = [];
 
-    const { viewMatrix } = Matrix.viewMatrix(this._camera);
-
     entity.mesh?.triangles.forEach((triangle) => {
-      const worldPoints = triangle.points.map(
-        (point) => worldMatrix.mult(point.matrix).vector
+      const worldPoints = worldMatrix
+        ? triangle.points.map((tPoint) =>
+            matrixToVector(
+              matrixMultiply(worldMatrix, vectorToColumnMatrix([...tPoint, 1]))
+            ).slice(0, 3)
+          )
+        : triangle.points;
+
+      const worldNormal = vectorCross(
+        vectorSub(worldPoints[1], worldPoints[0]),
+        vectorSub(worldPoints[2], worldPoints[0])
       );
 
-      const worldNormal = Vector.sub(worldPoints[1], worldPoints[0])
-        .cross(Vector.sub(worldPoints[2], worldPoints[0]))
-        .normalize()
-        .extend(0);
-
-      const raySimilarity = Vector.sub(
-        Vector.extended(this._camera.position, 1),
+      const vPointToCamera = vectorSub(
+        [...this._camera.body.position, 1],
         worldPoints[0]
-      )
-        .normalize()
-        .dot(worldNormal);
+      );
 
       // TODO: Use Camera.shouldCull
-      if (raySimilarity < 0) return;
+      if (vectorDot(vPointToCamera, worldNormal) < 0) return;
 
       const viewPoints = worldPoints
-        .map((point) => point.rowMatrix.mult(viewMatrix).vector)
+        .map((point) =>
+          matrixToVector(
+            matrixMultiply(vectorToRowMatrix([...point, 1]), viewMatrix)
+          )
+        )
         .map((v) => v.slice(0, 3));
 
-      // I'm guessing a depth buffer would help with this?
-      const clippedTriangles = this._camera.frustrum.near.clipTriangle(
+      const clippedTriangles = [
         new Triangle(
           viewPoints,
           triangle.color,
           triangle.style,
           triangle.texturePoints
-        )
-      );
+        ),
+      ];
 
       clippedTriangles.forEach((_triangle: Triangle) => {
-        const projectedPoints = _triangle.points.map(
-          (point) =>
-            this._projectionMatrix.mult(Vector.extended(point, 1).columnMatrix)
-              .vector
+        const projectedPoints = _triangle.points.map((point) =>
+          matrixToVector(
+            matrixMultiply(
+              this._projectionMatrix,
+              vectorToColumnMatrix([...point, 1])
+            )
+          )
         );
 
-        const perspectivePoints = projectedPoints.map((point) =>
-          point
-            .div(point.z)
-            .scale((this._canvasHeight / this._canvasWidth) * this._canvasScale)
-            .set(2, 1)
-            .slice(0, 3)
-        );
+        const perspectivePoints = projectedPoints.map((point) => {
+          const p = vectorDiv(point, point[2]);
+          const scaled = vectorScale(
+            p,
+            (this._canvasHeight / this._canvasWidth) * this._canvasScale
+          );
+          scaled[2] = 1;
+          return scaled.slice(0, 3);
+        });
 
-        // perspectivePoints.forEach((point) => {
-        //   // NDC to screen
-        //   point.x *= this.canvas_canvasWidth / 2;
-        //   point.y *= this.canvasH_canvasHeight / 2;
-        // });
+        _triangle.points = perspectivePoints;
 
         toPreFragments.push({
-          triangle: new Triangle(
-            perspectivePoints,
-            _triangle.color,
-            _triangle.style,
-            _triangle.texturePoints
-          ),
+          triangle: _triangle,
           worldNormal,
-          centroid: Vector.add(
-            Vector.add(projectedPoints[0], projectedPoints[1]),
-            projectedPoints[2]
-          ).div(3),
+          centroid: worldPoints[0],
           activeTexture: mesh.activeTexture,
         });
       });
     });
-
-    // Clipping routine
-    // toPreFragments.forEach((rasterObj) => {
-    //   const queue: RasterObject[] = [];
-    //   queue.push(rasterObj);
-    //   let numNewTriangles = 1;
-
-    //   cameraBounds.forEach((bound) => {
-    //     while (numNewTriangles > 0) {
-    //       const _rasterObj = queue.pop();
-    //       if (!_rasterObj) return;
-    //       numNewTriangles--;
-
-    //       const clippedTriangles: Triangle[] = this._camera.frustrum[
-    //         bound
-    //       ].clipTriangle(_rasterObj.triangle);
-
-    //       queue.push(
-    //         ...clippedTriangles
-    //           .filter((t) => t)
-    //           .map((t) => ({
-    //             triangle: t,
-    //             worldNormal: _rasterObj.worldNormal,
-    //             centroid: _rasterObj.centroid,
-    //             activeTexture: _rasterObj.activeTexture,
-    //           }))
-    //       );
-    //     }
-    //     numNewTriangles = queue.length;
-    //   });
-
-    //   preFragments.push(...queue);
-    // });
-    // TODO: this is not clipping
     return toPreFragments;
   }
 }

@@ -5,9 +5,9 @@ import { GameEngineOptions } from './GameEngine.utils';
 import { Entity } from '../entity/Entity';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { RigidBodyOptions } from '../../physics/rigid-body/RigidBody.utils';
-import { Vector } from '../../math/vector/Vector';
+import { Vector, vectorUniform } from '../../math/vector/Vector';
 import { Scene } from '../scene/Scene';
-import { MeshStyle } from '@vertex/api/graphics/mesh/Mesh';
+import { MeshStyle } from '../..//graphics/mesh/Mesh';
 
 export class GameEngine {
   private _fps: number;
@@ -32,15 +32,18 @@ export class GameEngine {
     const now = Date.now();
     const interval = 1000 / this.fps;
     const delta = now - this.lastFrame;
-    const {
-      graphics: { ctx, canvas },
-    } = this;
 
     if (delta > interval / 2) {
       this.physics.update(delta, this._scene.root.children);
     }
 
     if (delta > interval) {
+      this.graphics.ctx?.clearRect(
+        0,
+        0,
+        this.graphics.canvas.width,
+        this.graphics.canvas.height
+      );
       this.graphics.render(this._scene.root.children);
       this._lastFrame = now - (delta % interval);
     }
@@ -63,7 +66,7 @@ export class GameEngine {
     const { graphics, physics } = options;
     const entity = new Entity(id);
 
-    entity.scale = graphics?.scale ?? new Vector(1, 1, 1);
+    entity.scale = graphics?.scale ?? vectorUniform(1, 3);
 
     if (physics)
       entity.body = new RigidBody({ parentEntity: entity, ...physics });

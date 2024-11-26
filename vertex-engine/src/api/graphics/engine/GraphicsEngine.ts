@@ -1,13 +1,18 @@
 import { Mesh, MeshStyle } from '../mesh/Mesh';
 import { Camera } from '../camera/Camera';
-import { Matrix } from '../../math/matrix/Matrix';
-import { Vector } from '../../math/vector/Vector';
+import { Matrix, matrixProjection, matrixView } from '../../math/matrix/Matrix';
 import {
-  GraphicsEngineOptions,
-  GraphicsPipelineStage,
-  RasterObject,
-} from './GraphicsEngine.types';
-import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from './GraphicsEngine.utils';
+  Vector,
+  vectorAdd,
+  vectorMag,
+  vectorScale,
+  vectorSub,
+} from '../../math/vector/Vector';
+import { GraphicsEngineOptions } from './GraphicsEngine.types';
+import {
+  GRAPHICS_ENGINE_OPTIONS_DEFAULTS,
+  PIPELINE_STAGES,
+} from './GraphicsEngine.utils';
 import { Triangle } from '../triangle/Triangle';
 import { Entity } from '../../game/entity/Entity';
 import { Sphere } from '../../math/sphere/Sphere';
@@ -15,9 +20,10 @@ import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { MeshData } from '../mesh/Mesh.types';
-import { FragmentShader, VertexShader } from '../shader';
+import { Fragment, FragmentShader, VertexShader } from '../shader';
 import { Rasterizer } from '../rasterizer/Rasterizer';
 import { Framebuffer } from '../framebuffer/Framebuffer';
+import { Pool } from '../../util/pool/Pool';
 
 let printed = 0;
 export const printOne = (msg: any) => {
@@ -32,15 +38,16 @@ export class GraphicsEngine {
   private _ctx: CanvasRenderingContext2D | null;
 
   private camera: Camera;
-  private _shaders: Record<string, GraphicsPipelineStage> = {};
   private _meshData: Record<string, MeshData> = {};
   private _lights: Record<string, Light> = {};
   private scale: number;
   private _textures: Record<string, HTMLImageElement> = {};
   private _textureImageData: Record<string, ImageData> = {};
-  private _rasterizer: Rasterizer;
   private _framebuffer: Framebuffer;
   private _vertexShader: VertexShader;
+  private _vectorPool: Pool<Vector>;
+  private _trianglePool: Pool<Triangle>;
+  private _fragmentQueue: Fragment[][] = [];
 
   constructor(
     private _canvas = document.getElementById('canvas') as HTMLCanvasElement,
@@ -51,7 +58,6 @@ export class GraphicsEngine {
     if (!this._ctx) throw new Error('Cannot access Canvas context');
 
     this._ctx.imageSmoothingEnabled = false;
-    this._rasterizer = new Rasterizer(this._textures, this._textureImageData);
 
     const _options = Object.assign(
       {},
@@ -59,7 +65,7 @@ export class GraphicsEngine {
       options
     );
 
-    const { projectionMatrix } = Matrix.projectionMatrix(
+    const { projectionMatrix } = matrixProjection(
       _canvas.width,
       _canvas.height,
       _options.camera.near,
@@ -69,22 +75,20 @@ export class GraphicsEngine {
 
     this.scale = options?.scale ?? _canvas.width;
 
-    this.camera = new Camera({
+    const cameraEntity = new Entity('__CAMERA__');
+
+    cameraEntity.body = new RigidBody({
       position: _options.camera.position,
-      direction: _options.camera.direction,
+      rotation: _options.camera.direction,
+    });
+
+    this.camera = new Camera({
       displacement: _options.camera.displacement,
       near: _options.camera.near,
       far: _options.camera.far,
       bottom: _canvas.height,
       right: _canvas.width,
-      rotation: _options.camera.rotation,
-    });
-
-    const cameraEntity = new Entity('__CAMERA__');
-
-    cameraEntity.body = new RigidBody({
-      position: this.camera.position,
-      rotation: this.camera.direction,
+      body: cameraEntity.body,
     });
 
     this._vertexShader = new VertexShader(
@@ -95,21 +99,38 @@ export class GraphicsEngine {
       this.scale
     );
 
+    this._vectorPool = new Pool(() => [], _options.pool.size as number);
+
+    this._trianglePool = new Pool(
+      () => new Triangle([], '', 'stroke'),
+      _options.pool.size as number
+    );
+
     this._framebuffer = new Framebuffer(this._canvas, this._ctx);
 
     // @ts-ignore
     const gameEngine = window.__VERTEX_GAME_ENGINE__ as GameEngine;
     gameEngine.addToScene({ camera: cameraEntity });
 
-    cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
-    cameraEntity.body.forces.rotation = new Vector(0, 0, 0);
+    cameraEntity.body.forces.velocity = [0, 0, 0];
+    cameraEntity.body.forces.rotation = [0, 0, 0];
 
     cameraEntity.body.transforms.move = () => {
-      cameraEntity.body?.position.add(cameraEntity.body.forces.velocity);
+      if (cameraEntity.body?.position && cameraEntity.body.forces.velocity) {
+        cameraEntity.body.position = vectorAdd(
+          cameraEntity.body.position,
+          cameraEntity.body.forces.velocity
+        );
+      }
     };
 
     cameraEntity.body.transforms.rotate = () => {
-      cameraEntity.body?.rotation.add(cameraEntity.body.forces.rotation);
+      if (cameraEntity.body?.position && cameraEntity.body.forces.velocity) {
+        cameraEntity.body.rotation = vectorAdd(
+          cameraEntity.body?.rotation,
+          cameraEntity.body.forces.rotation
+        );
+      }
     };
 
     this._meshData = {};
@@ -123,8 +144,8 @@ export class GraphicsEngine {
   ) {
     const meshExists = !!this._meshData[url];
 
-    const min = new Vector(Infinity, Infinity, Infinity);
-    const max = new Vector(-Infinity, -Infinity, -Infinity);
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
 
     if (!meshExists) {
       const res = await fetch(url);
@@ -146,18 +167,16 @@ export class GraphicsEngine {
           meshData.name = parts[0];
         } else if (type === 'v') {
           meshData.vertices.push(
-            new Vector(
-              ...parts.map((c, i) => {
-                const comp = parseFloat(c);
-                if (comp < min.comps[i]) min.comps[i] = comp;
-                if (comp > max.comps[i]) max.comps[i] = comp;
-                return comp;
-              })
-            )
+            parts.map((c, i) => {
+              const comp = parseFloat(c);
+              if (comp < min[i]) min[i] = comp;
+              if (comp > max[i]) max[i] = comp;
+              return comp;
+            })
           );
         } else if (type === 'vt' && hasTextures) {
           const [u, v] = parts.filter((tc) => tc).map((tc) => parseFloat(tc));
-          const texturePoint = new Vector(u, v);
+          const texturePoint = [u, v];
           meshData.texturePoints.push(texturePoint);
         } else if (type === 'f') {
           let [f1, f2, f3] = line.slice(2).split(' ');
@@ -191,11 +210,11 @@ export class GraphicsEngine {
         }
       });
 
-      const modelMidpoint = min.comps.map((c, i) => (c + max.comps[i]) / 2);
+      const modelMidpoint = min.map((c, i) => (c + max[i]) / 2);
 
-      meshData.vertices.forEach((v) => {
-        v.comps = v.comps.map((c, i) => c - modelMidpoint[i]);
-      });
+      meshData.vertices = meshData.vertices.map((v) =>
+        v.map((c, i) => c - modelMidpoint[i])
+      );
 
       this._meshData[url] = meshData;
     }
@@ -211,8 +230,8 @@ export class GraphicsEngine {
   ) {
     const cachedMesh = this._meshData[url];
 
-    const min = new Vector(Infinity, Infinity, Infinity);
-    const max = new Vector(-Infinity, -Infinity, -Infinity);
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
 
     const meshData: Omit<MeshData, 'style' | 'triangles'> & {
       triangles: Triangle[];
@@ -220,16 +239,14 @@ export class GraphicsEngine {
       name: cachedMesh.name,
       vertices: cachedMesh.vertices.map(
         (v) =>
-          new Vector(
-            ...v.comps.map((c, i) => {
-              const _v = c * scale.comps[i];
-              if (_v < min.comps[i]) min.comps[i] = _v;
-              if (_v > max.comps[i]) max.comps[i] = _v;
+          v.map((c, i) => {
+            const _v = c * scale[i];
+            if (_v < min[i]) min[i] = _v;
+            if (_v > max[i]) max[i] = _v;
 
-              return _v;
-            }),
-            1
-          )
+            return _v;
+          }),
+        1
       ),
       texturePoints: cachedMesh.texturePoints,
       textureIndexes: cachedMesh.textureIndexes,
@@ -252,8 +269,8 @@ export class GraphicsEngine {
 
     // TODO: lmao there's gotta be something here that's causing the collision detection to mess up
     const boundingSphere = new Sphere(
-      Vector.add(min, max).scale(1 / 2),
-      Vector.sub(max, min).mag / 2
+      vectorScale(vectorSub(min, max), 0.5),
+      vectorMag(vectorSub(max, min)) / 2 // TODO: use mag squared for collision detection
     );
 
     const mesh = new Mesh(
@@ -277,8 +294,6 @@ export class GraphicsEngine {
         const image = evt.target as HTMLImageElement;
         this._textures[key] = image;
         const canvas = document.createElement('canvas');
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
         const ctx = canvas.getContext('2d', { alpha: false });
 
         canvas.width = image.naturalWidth;
@@ -298,23 +313,48 @@ export class GraphicsEngine {
     });
   }
 
+  private _handleWorker(evt: MessageEvent<any>) {
+    switch (evt.data.stage) {
+      case PIPELINE_STAGES.rasterization: {
+        // @ts-ignore
+        window.__VERTEX_GAME_ENGINE__?.graphics.fragmentQueue.push(
+          evt.data.fragments
+        );
+      }
+    }
+  }
+
   render(entities: Record<string, Entity>) {
-    Object.keys(entities).forEach((id) => {
+    let newFragments = false;
+
+    Object.keys(entities).forEach((id, i) => {
       const entity = entities[id];
       this.render(entity.children);
 
-      const vertexOutput = this._vertexShader.compute(entity);
+      const vertexOutput = this._vertexShader.compute(entity, this.camera);
 
       if (vertexOutput) {
-        const fragments = this._rasterizer.compute(vertexOutput);
-        FragmentShader.compute(fragments, {
-          lights: Object.values(this.lights),
-        });
-        this.framebuffer.drawFragments(fragments);
+        const textureKey = entity.mesh?.activeTexture ?? '';
+        const fragments = Rasterizer.compute(
+          vertexOutput,
+          this._textureImageData[textureKey],
+          {
+            width: this.canvas.width,
+            height: this.canvas.height,
+          }
+        );
+        if (fragments) {
+          newFragments = true;
+          this.framebuffer.drawFragments(fragments);
+        }
       }
     });
 
-    this._framebuffer.drawToScreen();
+    if (newFragments) this._framebuffer.drawToScreen();
+  }
+
+  get fragmentQueue() {
+    return this._fragmentQueue;
   }
 
   get framebuffer() {

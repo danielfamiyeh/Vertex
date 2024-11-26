@@ -1,18 +1,8 @@
-import { Vector } from '../../math/vector/Vector';
-import { getImageDataAtPixel } from './Rasterizer.utils';
-import {
-  GraphicsPipelineStage,
-  RasterObject,
-} from '../engine/GraphicsEngine.types';
+import { Vector, vectorScale, vectorSub } from '../../math/vector/Vector';
+import { RasterObject } from '../engine/GraphicsEngine.types';
 import { Fragment } from '../shader';
-import { printOne } from '../engine/GraphicsEngine';
 
-export class Rasterizer implements GraphicsPipelineStage {
-  constructor(
-    private _textures: Record<string, HTMLImageElement>,
-    private _textureImageData: Record<string, ImageData>
-  ) {}
-
+export class Rasterizer {
   static getPartialFragments(
     startPoint: Vector,
     endPoint: Vector,
@@ -23,13 +13,11 @@ export class Rasterizer implements GraphicsPipelineStage {
   ) {
     const partialFragments: Fragment[] = [];
 
-    if (dydx === Infinity) {
-      const _startPoint = endPoint.y > startPoint.y ? startPoint : endPoint;
-      const _endPoint = startPoint === endPoint ? startPoint : endPoint;
-
-      for (let y = _startPoint.y; y <= _endPoint.y; y++) {
+    if (Math.abs(dydx) === Infinity) {
+      const [minY, maxY] = [startPoint[1], endPoint[1]].sort((a, b) => a - b);
+      for (let y = minY; y <= maxY; y++) {
         partialFragments.push({
-          x: _startPoint.x,
+          x: startPoint[0],
           y: -y,
           worldNormal,
           centroid,
@@ -37,10 +25,12 @@ export class Rasterizer implements GraphicsPipelineStage {
         });
       }
     } else {
-      for (let x = startPoint.x; x <= endPoint.x; x++) {
+      const [minX, maxX] = [startPoint[0], endPoint[0]].sort((a, b) => a - b);
+      for (let x = minX; x <= maxX; x++) {
+        const y = Math.floor(startPoint[1] + dydx * (x - startPoint[0]));
         partialFragments.push({
           x: Math.floor(x),
-          y: Math.floor(-(startPoint.y + dydx * (x - startPoint.x))),
+          y: -y,
           worldNormal,
           centroid,
           pixelColor,
@@ -51,77 +41,87 @@ export class Rasterizer implements GraphicsPipelineStage {
     return partialFragments;
   }
 
-  compute(raster: RasterObject[]) {
+  static compute(
+    raster: RasterObject[],
+    textureImageData: ImageData,
+    screenBounds: { width: number; height: number }
+  ) {
     const buffer: Fragment[] = [];
 
-    raster.forEach(({ triangle, activeTexture, worldNormal, centroid }) => {
+    raster.forEach(({ triangle, worldNormal, centroid }, i) => {
       const {
         points: [p1, p2, p3],
-        color,
-        style,
       } = triangle;
+      const [[x1, y1], [x2, y2], [x3, y3]] = [p1, p2, p3];
+      const bounds = {
+        xMin: Math.min(x1, x2, x3),
+        xMax: Math.max(x1, x2, x3),
+        yMin: Math.min(y1, y2, y3),
+        yMax: Math.max(y1, y2, y3),
+      };
+      const edges = [
+        { a: y2 - y1, b: x1 - x2, c: x2 * y1 - x1 * y2 },
+        { a: y3 - y2, b: x2 - x3, c: x3 * y2 - x2 * y3 },
+        { a: y1 - y3, b: x3 - x1, c: x1 * y3 - x3 * y1 },
+      ];
 
-      if (triangle.hasTexture) {
-        const texture = this._textures[activeTexture];
+      if (textureImageData) {
+        bounds.xMin = Math.max(bounds.xMin, -(screenBounds.width / 2));
+        bounds.yMin = Math.max(bounds.yMin, -(screenBounds.height / 2));
+        bounds.yMax = Math.min(bounds.yMax, screenBounds.height / 2 - 1);
+        bounds.xMax = Math.min(bounds.xMax, screenBounds.width / 2 - 1);
 
-        const bounds = {
-          xMin: Math.min(p1.x, p2.x, p3.x),
-          xMax: Math.max(p1.x, p2.x, p3.x),
-          yMin: Math.min(p1.y, p2.y, p3.y),
-          yMax: Math.max(p1.y, p2.y, p3.y),
-        };
+        for (let y = bounds.yMin; y <= bounds.yMax; y++) {
+          for (let x = bounds.xMin; x <= bounds.xMax; x++) {
+            const p = [x, y];
 
-        for (let x = bounds.xMin; x <= bounds.xMax; x++) {
-          for (let y = bounds.yMin; y <= bounds.yMax; y++) {
-            const barycentricCoordinates = triangle.barycentricCoordinates(
-              new Vector(x, y)
-            );
-            const pointLiesInTriangle =
-              Math.abs(barycentricCoordinates.reduce((a, b) => a + b, 0) - 1) <=
-              1e-6;
+            const isInsideTriangle =
+              edges[0].a * x + edges[0].b * y + edges[0].c > 0 &&
+              edges[1].a * x + edges[1].b * y + edges[1].c > 0 &&
+              edges[2].a * x + edges[2].b * y + edges[2].c > 0;
 
-            if (pointLiesInTriangle) {
-              const originalTexturePoints = triangle.texturePoints.map((tp) => [
-                ...tp.comps,
-              ]);
-              const uvInterpolated = triangle.texturePoints[0]
-                .scale(barycentricCoordinates[0])
-                .add(
-                  triangle.texturePoints[1].scale(barycentricCoordinates[1]),
-                  triangle.texturePoints[2].scale(barycentricCoordinates[2])
-                );
+            if (isInsideTriangle) {
+              const barycentricCoordinates = triangle.barycentricCoordinates(p);
+
+              const uvInterpolated = triangle.texturePoints
+                .map((tp, i) => vectorScale(tp, barycentricCoordinates[i]))
+                .reduce(([u1, v1], [u2, v2]) => [u1 + u2, v1 + v2], [0, 0]);
+
+              const texX = Math.floor(
+                uvInterpolated[0] * textureImageData.width
+              );
+              const texY = Math.floor(
+                (1 - uvInterpolated[1]) * textureImageData.height
+              );
+
+              const index = (texY * textureImageData.width + texX) * 4;
+              const r = textureImageData.data[index];
+              const g = textureImageData.data[index + 1];
+              const b = textureImageData.data[index + 2];
+              const a = textureImageData.data[index + 3];
 
               const fragment = {
                 x: Math.floor(x),
                 y: -Math.floor(y),
-                pixelColor: getImageDataAtPixel(
-                  // Technically the job of a fragment shader (I think?)
-                  // But may as well do this here to save interpolating again
-                  Math.floor(uvInterpolated.x * texture.naturalWidth),
-                  Math.floor((1 - uvInterpolated.y) * texture.naturalHeight),
-                  this._textureImageData[activeTexture]
-                ),
+                pixelColor: [r, g, b, a],
                 worldNormal,
                 centroid,
               };
 
               buffer.push(fragment);
-
-              triangle.texturePoints.forEach(
-                (tp, i) => (tp.comps = originalTexturePoints[i])
-              );
             }
           }
         }
       } else {
-        const points = [p1, p2, p3].sort((a, b) => a.x - b.x);
-        const v = Vector.sub(points[1], points[0]);
-        const v2 = Vector.sub(points[2], points[1]);
-        const v3 = Vector.sub(points[2], points[0]);
+        const points = [p1, p2, p3].sort((a, b) => a[0] - b[0]);
 
-        const dydx1 = v.y / v.x;
-        const dydx2 = v2.y / v2.x;
-        const dydx3 = v3.y / v3.x;
+        const v = vectorSub(points[1], points[0]);
+        const v2 = vectorSub(points[2], points[1]);
+        const v3 = vectorSub(points[2], points[0]);
+
+        const dydx1 = v[1] / v[0];
+        const dydx2 = v2[1] / v2[0];
+        const dydx3 = v3[1] / v3[0];
 
         const partialFragments1 = Rasterizer.getPartialFragments(
           points[0],

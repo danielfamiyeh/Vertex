@@ -1,4 +1,4 @@
-import { Entity } from '@vertex/api/game/entity/Entity';
+import { Entity } from '../../game/entity/Entity';
 
 export class PhysicsEngine {
   constructor() {}

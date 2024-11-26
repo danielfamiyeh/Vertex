@@ -9,7 +9,7 @@ const headRotationLimit = 30;
 export const CubeMan = async (gameEngine: GameEngine) => {
   const head = await gameEngine.createEntity('head', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
     },
 
     physics: {
@@ -22,7 +22,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
   const torso = await gameEngine.createEntity('torso', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
       scale: new Vector(2, 5, 1),
     },
     physics: {
@@ -32,7 +32,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
   const rightArm = await gameEngine.createEntity('rightArm', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
       scale: new Vector(1, 2, 1),
     },
 
@@ -46,7 +46,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
   const leftArm = await gameEngine.createEntity('leftArm', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
       scale: new Vector(1, 2, 1),
     },
 
@@ -58,7 +58,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
   const rightLeg = await gameEngine.createEntity('rightLeg', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
       scale: new Vector(1, 2, 1),
     },
 
@@ -72,7 +72,7 @@ export const CubeMan = async (gameEngine: GameEngine) => {
 
   const leftLeg = await gameEngine.createEntity('leftLeg', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
       scale: new Vector(-1, 2, 1),
     },
 

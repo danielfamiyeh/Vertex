@@ -10,7 +10,7 @@ import { Color } from '../../api/graphics/color/Color';
 export const initLightingExample = async (gameEngine: GameEngine) => {
   const cube = await gameEngine.createEntity('cube', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/cube.obj',
+      mesh: 'http://127.0.0.1:8080/models/cube.obj',
       scale: Vector.uniform(2, 3),
       style: 'stroke',
     },
@@ -21,7 +21,7 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
 
   const sphere2 = await gameEngine.createEntity('sphere', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
       scale: Vector.uniform(2, 3),
     },
     physics: {
@@ -31,7 +31,7 @@ export const initLightingExample = async (gameEngine: GameEngine) => {
 
   const sphere3 = await gameEngine.createEntity('sphere', {
     graphics: {
-      mesh: 'http://127.0.0.1:8080/sphere.obj',
+      mesh: 'http://127.0.0.1:8080/models/sphere.obj',
       scale: Vector.uniform(2, 3),
     },
     physics: {

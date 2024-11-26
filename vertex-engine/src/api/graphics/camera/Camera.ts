@@ -1,41 +1,49 @@
 import { Plane } from '../../math/plane/Plane';
-import { Vector } from '../../math/vector/Vector';
+import {
+  Vector,
+  vectorCreate,
+  vectorCross,
+  vectorNormalize,
+  vectorScale,
+  vectorSub,
+} from '../../math/vector/Vector';
 import { CameraFrustrum, CameraOptions } from './Camera.types';
 import { GameEngine } from '../../game/engine/GameEngine';
+import { RigidBody } from 'src/api/physics/rigid-body/RigidBody';
 
-const upVector = new Vector(0, 1, 0);
+export const upVector = [0, 1, 0];
 
 export class Camera {
-  private _frustrum: CameraFrustrum;
-  private _position: Vector;
-  private _direction: Vector;
+  // @ts-ignore
+  private _frustrum: CameraFrustrum = {};
   private _displacement: number;
-  private _rotation: number;
+  private _rotationalDisplacement: number;
+  private _body: RigidBody;
 
   constructor(options: CameraOptions) {
-    this._position = options.position;
-    this._direction = options.direction;
+    setTimeout;
     this._displacement = options.displacement;
-    this._rotation = options.rotation;
+    this._rotationalDisplacement = options.displacement / 50;
+    this._body = options.body;
 
-    this._frustrum = {
-      // TODO: Why are some of these flipped?
-      near: new Plane(new Vector(0, 0, options.near), new Vector(0, 0, 1)),
-      far: new Plane(new Vector(0, 0, options.far), new Vector(0, 0, -1)),
-      left: new Plane(new Vector(options.right / 2, 0, 0), new Vector(1, 0, 0)),
-      right: new Plane(
-        new Vector(-(options.right / 2), 0, 0),
-        new Vector(-1, 0, 0)
-      ),
-      top: new Plane(
-        new Vector(0, -(options.bottom / 2), 0),
-        new Vector(0, -1, 0)
-      ),
-      bottom: new Plane(
-        new Vector(0, options.bottom / 2, 0),
-        new Vector(0, 1, 0)
-      ),
-    };
+    // this._frustrum = {
+    //   // TODO: Why are some of these flipped?
+    //   near: new Plane([0, 0, options.near], [0, 0, 1],
+    //   far: new Plane([0, 0, options.far], [0, 0, -1]),
+    //   left: new Plane([options.right / 2, 0, 0], [1, 0, 0],
+    //   right: new Plane(
+    //     [-(options.right / 2), 0, 0],
+    //     [-1, 0, 0]
+    //   ),
+    //   top: new Plane(
+    //     [0, -(options.bottom / 2), 0],
+    //     [0, -1, 0]
+    //   ),
+    //   bottom: new Plane(
+    //     [0, options.bottom / 2, 0],
+    //     [0, 1, 0]
+    //   ),
+    // };
 
     addEventListener('keydown', this.defaultKeydownListener.bind(this));
     addEventListener('keyup', this.defaultKeyUpListener.bind(this));
@@ -51,19 +59,19 @@ export class Camera {
     if (!cameraEntity.body) return;
 
     if (key === 'w' || key === 's') {
-      cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
+      cameraEntity.body.forces.velocity = [0, 0, 0];
     }
 
     if (key === 'arrowdown' || key === 'arrowup') {
-      cameraEntity.body.forces.velocity.y = 0;
+      cameraEntity.body.forces.velocity[1] = 0;
     }
 
     if (key === 'arrowright' || key === 'arrowleft') {
-      cameraEntity.body.forces.velocity = new Vector(0, 0, 0);
+      cameraEntity.body.forces.velocity = [0, 0, 0];
     }
 
     if (key === 'a' || key === 'd') {
-      cameraEntity.body.forces.rotation.x = 0;
+      cameraEntity.body.forces.rotation[0] = 0;
     }
   }
 
@@ -75,70 +83,56 @@ export class Camera {
     if (!cameraEntity.body) return;
 
     if (event.key === 'ArrowUp') {
-      cameraEntity.body.forces.velocity.y = this._displacement;
+      cameraEntity.body.forces.velocity[1] = this._displacement;
     }
 
     if (event.key === 'ArrowDown') {
-      cameraEntity.body.forces.velocity.y = -this._displacement;
+      cameraEntity.body.forces.velocity[1] = -this._displacement;
     }
 
     if (event.key === 'ArrowLeft') {
-      const left = this.direction
-        .cross(upVector)
-        .normalize()
-        .scale(this._displacement);
+      const left = vectorScale(
+        vectorNormalize(vectorCross(this.body.rotation, upVector)),
+        this._displacement
+      );
 
       cameraEntity.body.forces.velocity = left;
     }
 
     if (event.key === 'ArrowRight') {
-      const right = this.direction
-        .cross(upVector)
-        .normalize()
-        .scale(-this._displacement);
+      const right = vectorScale(
+        vectorNormalize(vectorCross(this.body.rotation, upVector)),
+        -this._displacement
+      );
 
       cameraEntity.body.forces.velocity = right;
     }
 
     if (event.key.toLowerCase() === 'a') {
-      cameraEntity.body.forces.rotation.x = -this._rotation;
+      cameraEntity.body.forces.rotation[0] = -this._rotationalDisplacement;
     }
 
     if (event.key.toLowerCase() === 'd') {
-      cameraEntity.body.forces.rotation.x = this._rotation;
+      cameraEntity.body.forces.rotation[0] = this._rotationalDisplacement;
     }
 
     if (event.key.toLowerCase() === 'w') {
-      cameraEntity.body.forces.velocity = Vector.normalize(
-        this._direction
-      ).scale(this._displacement);
+      cameraEntity.body.forces.velocity = vectorScale(
+        vectorNormalize(this._body.rotation),
+        this._displacement
+      );
     }
 
     if (event.key.toLowerCase() === 's') {
-      cameraEntity.body.forces.velocity = Vector.normalize(
-        this._direction
-      ).scale(-this._displacement);
+      cameraEntity.body.forces.velocity = vectorScale(
+        vectorNormalize(this._body.rotation),
+        -this._displacement
+      );
     }
   }
 
-  shouldCull(p1: Vector, p2: Vector, p3: Vector, epsilon = 0.05) {
-    const pNormal = Vector.sub(p2, p1)
-      .cross(Vector.sub(p3, p1))
-      .normalize()
-      .extend(0);
-
-    const raySimilarity = Vector.sub(p1, this.position)
-      .normalize()
-      .dot(pNormal);
-    return { pNormal, raySimilarity, shouldCull: raySimilarity < epsilon };
-  }
-
-  get position() {
-    return this._position;
-  }
-
-  get direction() {
-    return this._direction;
+  get body() {
+    return this._body;
   }
 
   get displacement() {

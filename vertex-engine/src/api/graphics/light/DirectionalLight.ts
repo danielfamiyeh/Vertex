@@ -1,15 +1,21 @@
 import { Light } from './Light';
 import { Color } from '../color/Color';
-import { Vector } from '../../math/vector/Vector';
+import {
+  Vector,
+  vectorDiv,
+  vectorDot,
+  vectorNormalize,
+  vectorScale,
+} from '../../math/vector/Vector';
 
 export class DirectionalLight implements Light {
   constructor(private _color: Color, private _direction: Vector) {
-    this._direction.scale(-1).normalize();
+    vectorNormalize(vectorScale(this._direction, -1));
     this._color = this._color.RGBToHSV();
   }
 
   illuminate(normal: Vector) {
-    const raySimilarity = this.direction.dot(normal);
+    const raySimilarity = vectorDot(this._direction, normal);
     const brightness = Math.max(0.25, raySimilarity);
 
     const comps = [...this.color.comps];
