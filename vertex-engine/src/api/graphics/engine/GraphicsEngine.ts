@@ -73,7 +73,7 @@ export class GraphicsEngine {
 
     cameraEntity.body = new RigidBody({
       position: _options.camera.position,
-      rotation: _options.camera.direction,
+      direction: _options.camera.direction,
     });
 
     this.camera = new Camera({
@@ -111,8 +111,8 @@ export class GraphicsEngine {
 
     cameraEntity.body.transforms.rotate = () => {
       if (cameraEntity.body?.position && cameraEntity.body.forces.velocity) {
-        cameraEntity.body.rotation = vectorAdd(
-          cameraEntity.body?.rotation,
+        cameraEntity.body.direction = vectorAdd(
+          cameraEntity.body?.direction,
           cameraEntity.body.forces.rotation
         );
       }

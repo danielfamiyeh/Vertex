@@ -46,7 +46,6 @@ export class GameEngine {
       );
       this.graphics.render(this._scene.root.children);
       this._lastFrame = now - (delta % interval);
-      console.log(1 / delta);
     }
 
     window.requestAnimationFrame(() => this.start());

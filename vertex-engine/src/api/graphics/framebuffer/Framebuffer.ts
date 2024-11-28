@@ -31,20 +31,17 @@ export class Framebuffer {
   }
 
   drawFragments(fragments: Fragment[]) {
-    const data = this._bitmap.data;
-    const width = this._bitmap.width;
-    const denomX = this._xDenom;
-    const denomY = this._yDenom;
-
     for (let i = 0; i < fragments.length; i++) {
       const { x, y, pixelColor } = fragments[i];
       const index =
-        (Math.floor(y + denomY) * width + Math.floor(x + denomX)) * 4;
+        (Math.floor(y + this._yDenom) * this._bitmap.width +
+          Math.floor(x + this._xDenom)) *
+        4;
 
-      data[index] = pixelColor[0];
-      data[index + 1] = pixelColor[1];
-      data[index + 2] = pixelColor[2];
-      data[index + 3] = pixelColor[3];
+      this._bitmap.data[index] = pixelColor[0];
+      this._bitmap.data[index + 1] = pixelColor[1];
+      this._bitmap.data[index + 2] = pixelColor[2];
+      this._bitmap.data[index + 3] = pixelColor[3];
     }
   }
 

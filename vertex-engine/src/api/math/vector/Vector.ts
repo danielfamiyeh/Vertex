@@ -1,5 +1,3 @@
-import { Matrix } from '../matrix/Matrix';
-
 export type Vector = number[];
 
 export function vectorCreate(...comps: number[]): Vector {
@@ -128,4 +126,8 @@ export function vectorSetZ(v: Vector, value: number): Vector {
 
 export function vectorSetW(v: Vector, value: number): Vector {
   return vectorSet(v, 3, value);
+}
+
+export function vectorLerp(v1: Vector, v2: Vector, lambda: number): Vector {
+  return vectorAdd(v1, vectorScale(vectorSub(v2, v1), lambda));
 }

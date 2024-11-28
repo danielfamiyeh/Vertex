@@ -6,8 +6,8 @@ const gameEngine = new GameEngine({
     fps: 30,
     style: 'stroke',
     camera: {
-      near: 0.1,
-      far: 1000,
+      near: 5,
+      far: 100,
       fieldOfView: 45,
       position: [0, 10, -30],
       direction: [0, 0, 1],

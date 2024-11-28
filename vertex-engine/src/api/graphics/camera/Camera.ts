@@ -14,12 +14,15 @@ export class Camera {
   private _displacement: number;
   private _rotationalDisplacement: number;
   private _body: RigidBody;
+  private _near: number;
+  private _far: number;
 
   constructor(options: CameraOptions) {
-    setTimeout;
     this._displacement = options.displacement;
     this._rotationalDisplacement = options.displacement / 50;
     this._body = options.body;
+    this._near = options.near;
+    this._far = options.far;
 
     addEventListener('keydown', this.defaultKeydownListener.bind(this));
     addEventListener('keyup', this.defaultKeyUpListener.bind(this));
@@ -68,7 +71,7 @@ export class Camera {
 
     if (event.key === 'ArrowLeft') {
       const left = vectorScale(
-        vectorNormalize(vectorCross(this.body.rotation, upVector)),
+        vectorNormalize(vectorCross(this.body.direction, upVector)),
         this._displacement
       );
 
@@ -77,7 +80,7 @@ export class Camera {
 
     if (event.key === 'ArrowRight') {
       const right = vectorScale(
-        vectorNormalize(vectorCross(this.body.rotation, upVector)),
+        vectorNormalize(vectorCross(this.body.direction, upVector)),
         -this._displacement
       );
 
@@ -94,14 +97,14 @@ export class Camera {
 
     if (event.key.toLowerCase() === 'w') {
       cameraEntity.body.forces.velocity = vectorScale(
-        vectorNormalize(this._body.rotation),
+        vectorNormalize(this._body.direction),
         this._displacement
       );
     }
 
     if (event.key.toLowerCase() === 's') {
       cameraEntity.body.forces.velocity = vectorScale(
-        vectorNormalize(this._body.rotation),
+        vectorNormalize(this._body.direction),
         -this._displacement
       );
     }
@@ -113,6 +116,14 @@ export class Camera {
 
   get displacement() {
     return this._displacement;
+  }
+
+  get near() {
+    return this._near;
+  }
+
+  get far() {
+    return this._far;
   }
 
   set displacement(d: number) {
