@@ -1,11 +1,5 @@
-import {
-  Vector,
-  vectorAdd,
-  vectorDot,
-  vectorLerp,
-  vectorSub,
-} from '../vector/Vector';
 import { Triangle } from '../../graphics/triangle/Triangle';
+import { Vector, vectorDot, vectorLerp, vectorSub } from '../vector/Vector';
 
 export type Plane = [Vector, Vector];
 
