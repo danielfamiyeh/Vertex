@@ -4,5 +4,7 @@ export type CameraOptions = {
   displacement: number;
   near: number;
   far: number;
+  right: number;
+  top: number;
   body: RigidBody;
 };

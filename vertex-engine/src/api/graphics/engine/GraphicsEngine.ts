@@ -81,6 +81,8 @@ export class GraphicsEngine {
       near: _options.camera.near,
       far: _options.camera.far,
       body: cameraEntity.body,
+      right: this.canvas.width,
+      top: this.canvas.height,
     });
 
     this._vertexShader = new VertexShader(

@@ -71,8 +71,6 @@ export class Rasterizer {
         { a: y1 - y3, b: x3 - x1, c: x1 * y3 - x3 * y1 },
       ];
 
-      printOne(triangle.texturePoints);
-
       if (textureImageData) {
         bounds.xMin = Math.max(bounds.xMin, -(screenBounds.width / 2));
         bounds.yMin = Math.max(bounds.yMin, -(screenBounds.height / 2));

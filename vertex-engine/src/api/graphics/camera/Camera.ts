@@ -6,6 +6,7 @@ import {
 import { CameraOptions } from './Camera.types';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { RigidBody } from 'src/api/physics/rigid-body/RigidBody';
+import { Plane } from '../../math/plane/Plane';
 
 export const upVector = [0, 1, 0];
 
@@ -14,15 +15,42 @@ export class Camera {
   private _displacement: number;
   private _rotationalDisplacement: number;
   private _body: RigidBody;
-  private _near: number;
-  private _far: number;
+  private _near: Plane;
+  private _far: Plane;
+  private _right: Plane;
+  private _bottom: Plane;
+  private _left: Plane;
+  private _top: Plane;
 
   constructor(options: CameraOptions) {
     this._displacement = options.displacement;
     this._rotationalDisplacement = options.displacement / 50;
     this._body = options.body;
-    this._near = options.near;
-    this._far = options.far;
+
+    this._near = [
+      [0, 0, options.near],
+      [0, 0, 1],
+    ];
+    this._far = [
+      [0, 0, options.far],
+      [0, 0, -1],
+    ];
+    this._left = [
+      [-options.right / 2 + 1, 0, 0],
+      [1, 0, 0],
+    ];
+    this._right = [
+      [options.right / 2 - 1, 0, 0],
+      [-1, 0, 0],
+    ];
+    this._bottom = [
+      [0, -(options.top / 2) + 1, 0],
+      [0, 1, 0],
+    ];
+    this._top = [
+      [0, options.top / 2 - 1, 0],
+      [0, -1, 0],
+    ];
 
     addEventListener('keydown', this.defaultKeydownListener.bind(this));
     addEventListener('keyup', this.defaultKeyUpListener.bind(this));
@@ -120,6 +148,22 @@ export class Camera {
 
   get near() {
     return this._near;
+  }
+
+  get left() {
+    return this._left;
+  }
+
+  get right() {
+    return this._right;
+  }
+
+  get bottom() {
+    return this._bottom;
+  }
+
+  get top() {
+    return this._top;
   }
 
   get far() {

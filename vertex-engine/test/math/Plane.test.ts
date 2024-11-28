@@ -2,7 +2,7 @@ import assert from 'assert';
 import { Triangle } from '../../src/api/graphics/triangle/Triangle';
 import {
   Plane,
-  clipTriangle,
+  planeClipTriangle,
   linePlaneIntersection,
   planePointDistance,
 } from '../../src/api/math/plane/Plane';
@@ -27,7 +27,7 @@ const plane: Plane = [
 ];
 
 // Test cases
-describe('clipTriangle', () => {
+describe('Plane test suite', () => {
   it('should correctly compute the intersection of a line segment with a plane', () => {
     const lineStart = [1, 1, 1];
     const lineEnd = [1, -1, 1];
@@ -62,7 +62,7 @@ describe('clipTriangle', () => {
       'stroke'
     );
 
-    const result = clipTriangle(plane, triangle);
+    const result = planeClipTriangle(plane, triangle);
     assert.strictEqual(result.length, 1);
     result[0].points.forEach((point, i) =>
       vectorsAlmostEqual(point, triangle.points[i])
@@ -80,7 +80,7 @@ describe('clipTriangle', () => {
       'stroke'
     );
 
-    const result = clipTriangle(plane, triangle);
+    const result = planeClipTriangle(plane, triangle);
     assert.strictEqual(result.length, 0);
   });
 
@@ -95,7 +95,7 @@ describe('clipTriangle', () => {
       'stroke'
     );
 
-    const result = clipTriangle(plane, triangle);
+    const result = planeClipTriangle(plane, triangle);
     assert.strictEqual(result.length, 1);
 
     const expectedPoints = [
@@ -119,7 +119,7 @@ describe('clipTriangle', () => {
       'stroke'
     );
 
-    const result = clipTriangle(plane, triangle);
+    const result = planeClipTriangle(plane, triangle);
 
     assert.strictEqual(result.length, 2);
 
@@ -144,7 +144,7 @@ describe('clipTriangle', () => {
   });
 
   it('should handle degenerate cases correctly', () => {
-    const plane = [
+    const plane: Plane = [
       [0, 0, 0],
       [0, 1, 0],
     ]; // y = 0
@@ -158,7 +158,7 @@ describe('clipTriangle', () => {
       'stroke'
     );
 
-    const result = clipTriangle(plane, triangle);
+    const result = planeClipTriangle(plane, triangle);
     assert.strictEqual(result.length, 1);
 
     const expectedPoints = [

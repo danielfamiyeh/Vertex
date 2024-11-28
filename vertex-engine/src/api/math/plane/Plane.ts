@@ -40,7 +40,7 @@ export function linePlaneIntersection(
   return { pointOfIntersection, lambda };
 }
 
-export function clipTriangle(p: Plane, t: Triangle) {
+export function planeClipTriangle(p: Plane, t: Triangle) {
   const insidePoints: Vector[] = [];
   const outsidePoints: Vector[] = [];
 
