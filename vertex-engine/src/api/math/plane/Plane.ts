@@ -1,212 +1,142 @@
-import { printOne } from '../../graphics/engine/GraphicsEngine';
 import { Triangle } from '../../graphics/triangle/Triangle';
-import {
-  Vector,
-  vectorCross,
-  vectorDot,
-  vectorNormalize,
-  vectorScale,
-  vectorSub,
-} from '../vector/Vector';
-import { ClipMap, LinePlaneIntersection } from './Plane.types';
+import { Vector, vectorDot, vectorLerp, vectorSub } from '../vector/Vector';
 
-export class Plane {
-  private _d: number;
+export type Plane = [Vector, Vector];
 
-  constructor(private _point: Vector, private _normal: Vector) {
-    vectorNormalize(this._normal);
-    this._d = vectorDot(this._normal, this.point);
-  }
+export function planePoint(p: Plane) {
+  return p[0];
+}
 
+export function planeNormal(p: Plane) {
+  return p[1];
+}
+
+export function planePointDistance(p: Plane, v: Vector) {
+  const [point, normal] = p;
+  return vectorDot(vectorSub(point, v), normal);
+}
+
+export function linePlaneIntersection(
+  p: Plane,
+  lineStart: Vector,
+  lineEnd: Vector
+) {
   /**
-   * Generates a Plane object from three position vectors
+   * Writing this here so I can read it until it's burned into my retinas
    *
-   * @param {Vector} p    Arbitrary point to be used as a reference
-   * @param {Vector} q    Destination point used to construct a vector in the plane
-   * @param {Vector} r    Destination point used to construct a vector in the plane
-   * @returns {Plane}     Plane constructed from three position vectors
+   * We want to find the point where d(p) = 0
+   * Recall: d(p) = n(p - p0)                         (Literally just the projection of the plane normal onto the distance vector)
+   * Recall: p(t) = v1 + t(v2-v1)                     (Literally just linear interpolation)
+   * So that: d(p(t)) = n(v1 + t(v2-v1)) - p0) = 0    (Literally just substitution)
+   * ==>: n(v1 - p0) + (t)(n)(v2-v1)                  (Literally just rearranging)
+   * ==>: -d1/d2-d1                                   (Come on bro, it's not even hard)
    */
-  static fromPoints(p: Vector, q: Vector, r: Vector): Plane {
-    const position = [...p];
-    const pq = vectorSub([...p], p);
-    const pr = vectorSub([...r], p);
+  const dStart = planePointDistance(p, lineStart);
+  const dEnd = planePointDistance(p, lineEnd);
 
-    const normal = vectorCross(pq, pr);
+  const lambda = -dStart / (dEnd - dStart);
+  const pointOfIntersection = vectorLerp(lineStart, lineEnd, lambda);
 
-    return new Plane(position, normal);
-  }
+  return { pointOfIntersection, lambda };
+}
 
-  /**
+export function planeClipTriangle(p: Plane, t: Triangle) {
+  const insidePoints: Vector[] = [];
+  const outsidePoints: Vector[] = [];
 
-  /**
-   * Finds the point at which a ray intersects a plane
-   * https://en.wikipedia.org/wiki/Line–plane_intersection
-   *
-   * @param {Vector} startPoint   Start coordinate of ray
-   * @param {Vector} endPoint     End coordiante of ray
-   * @returns {Vector | null}     Returns Vector if ray intersects plane, else null
-   */
-  intersectRay(startPoint: Vector, endPoint: Vector): LinePlaneIntersection {
-    const ray = vectorNormalize(vectorSub(endPoint, startPoint));
-    const bottom = vectorDot(ray, this._normal);
-    const top = vectorDot(
-      vectorNormalize(vectorSub(this._point, startPoint)),
-      this._normal
-    );
-    const t = top / bottom;
+  const insideTexturePoints: Vector[] = [];
+  const outsideTexturePoints: Vector[] = [];
 
-    return { t, ray: vectorScale(ray, t) };
-  }
+  t.points.forEach((v, i) => {
+    if (planePointDistance(p, v) <= 0) {
+      insidePoints.push(v);
+      if (t.hasTexture) insideTexturePoints.push(t.texturePoints[i]);
+    } else {
+      outsidePoints.push(v);
+      if (t.hasTexture) outsideTexturePoints.push(t.texturePoints[i]);
+    }
+  });
 
-  /**
-   * Determines a points distance from closest point of a plane
-   *
-   * @param {Vector} point Position vector representing a point in 3D space
-   * @returns {number}     Distance from plane in arbitrary units
-   */
-  pointDistance(point: Vector): number {
-    return vectorDot(this.normal, point) + this.d;
-  }
+  switch (insidePoints.length) {
+    case 1: {
+      // Then the new geometry is the original point
+      // + the two points that are at the plane intersection
+      const [startPoint] = insidePoints;
+      const [endPoint1, endPoint2] = outsidePoints;
 
-  /**
-   * Clips triangles against plane
-   *
-   * @param {Triangle} input      Triangle to clip against plane
-   * @returns {Array<Triangle>}   Array of triangles produced by clipping input
-   */
-  clipTriangle(input: Triangle): Triangle[] {
-    const newTriangles: Triangle[] = [];
-    const points: ClipMap = {
-      inside: [],
-      outside: [],
-    };
-    const texturePoints: ClipMap = {
-      inside: [],
-      outside: [],
-    };
+      const [texelStartPoint] = insideTexturePoints;
+      const [texelEndPoint1, texelEndPoint2] = outsideTexturePoints;
 
-    const distances = input.points.map((point) => this.pointDistance(point));
+      const { pointOfIntersection: newPoint1, lambda: lambda1 } =
+        linePlaneIntersection(p, startPoint, endPoint1);
+      const { pointOfIntersection: newPoint2, lambda: lambda2 } =
+        linePlaneIntersection(p, startPoint, endPoint2);
 
-    distances.forEach((dist, i) => {
-      const placement = dist >= 0 ? 'inside' : 'outside';
-      points[placement].push(input.points[i]);
-      texturePoints[placement].push(input.texturePoints[i]);
-    });
-
-    switch (points.inside.length) {
-      case 1: {
-        // Clip triangle against ray of intersection
-        // const newPoints: Vector[] = [];
-        // const newTexturePoints: Vector[] = [];
-
-        // // Preserve inside point
-        // newPoints.push(points.inside[0]);
-        // input.hasTexture && newTexturePoints.push(texturePoints.inside[0]);
-
-        // // Get new points based on ray intersection from preserved point and plane
-        // points.outside.forEach((point, i) => {
-        //   const { ray: newPoint, t } = this.intersectRay(newPoints[0], point);
-
-        //   newPoints.push(newPoint);
-        //   // This nesting is getting janky :/
-        //   input.hasTexture &&
-        //     newTexturePoints.push(
-        //       Vector.add(
-        //         newTexturePoints[0],
-        //         Vector.scale(
-        //           Vector.sub(texturePoints.outside[i], newTexturePoints[0]),
-        //           t ?? 1
-        //         )
-        //       )
-        //     );
-        // });
-
-        // newTriangles.push(
-        //   new Triangle(newPoints, input.color, input.style, newTexturePoints)
-        // );
-        break;
-      }
-
-      case 2: {
-        /**
-         * Two points lie inside plane so clip triangle against plane
-         * Split quad formed by clipping into two triangles
-         */
-        // const newPoints1 = input.points.map((point) => point.copy());
-        // const newPoints2 = input.points.map((point) => point.copy());
-        // const newTexturePoints1 = input.texturePoints.map((point) =>
-        //   point.copy()
-        // );
-        // const newTexturePoints2 = input.texturePoints.map((point) =>
-        //   point.copy()
-        // );
-        // // First triangle has two inside points and one at plane intersection
-        // newPoints1[0] = points.inside[0];
-        // newPoints1[1] = points.inside[1];
-        // const { ray: ray1, t: t1 } =
-        //   this.intersectRay(points.inside[0], points.outside[0]) ?? {};
-        // newPoints1[2] = ray1 as Vector;
-        // printOne(texturePoints);
-        // if (input.hasTexture) {
-        //   newTexturePoints1[0] = texturePoints.inside[0];
-        //   newTexturePoints1[1] = texturePoints.inside[1];
-        //   newTexturePoints1[2] = Vector.add(
-        //     texturePoints.inside[0],
-        //     Vector.scale(
-        //       Vector.sub(texturePoints.outside[0], texturePoints.inside[0]),
-        //       t1
-        //     )
-        //   );
-        // }
-        // // /**
-        // //  * Second triangle is defined by one inside point, the clipped point of the other triangle
-        // //  * and a new clipped point on the other side of the triangle
-        // //  */
-        // newPoints2[0] = points.inside[1];
-        // newPoints2[1] = newPoints1[2];
-        // const { ray: ray2, t: t2 } = this.intersectRay(
-        //   points.inside[1],
-        //   points.outside[0]
-        // );
-        // newPoints2[2] = ray2;
-        // if (input.hasTexture) {
-        //   newTexturePoints2[0] = texturePoints.inside[1];
-        //   newTexturePoints2[1] = texturePoints.outside[0];
-        //   newTexturePoints2[2] = Vector.add(
-        //     texturePoints.inside[0],
-        //     Vector.scale(
-        //       Vector.sub(texturePoints.outside[0], texturePoints.inside[1]),
-        //       t2
-        //     )
-        //   );
-        // }
-        // newTriangles.push(
-        //   new Triangle(newPoints1, input.color, input.style, newTexturePoints1)
-        // );
-        // newTriangles.push(
-        //   new Triangle(newPoints2, input.color, input.style, newTexturePoints2)
-        // );
-        // break;
-      }
-
-      case 3: {
-        newTriangles.push(input);
-        break;
-      }
+      return [
+        new Triangle(
+          [startPoint, newPoint1, newPoint2],
+          t.color,
+          t.style,
+          t.hasTexture
+            ? [
+                texelStartPoint,
+                vectorLerp(texelStartPoint, texelEndPoint1, lambda1),
+                vectorLerp(texelStartPoint, texelEndPoint2, lambda2),
+              ]
+            : t.texturePoints
+        ),
+      ];
     }
 
-    return newTriangles;
-  }
+    case 2: {
+      // Our plane intersection forms a quadrilateral with the two inside points
+      // t1 = <pInside1, pIntersection1, pInside2>
+      // t2 = <pIntersection1, pIntersection2, pInside2>
 
-  get point() {
-    return this._point;
-  }
+      const [insidePoint1, insidePoint2] = insidePoints;
+      const [outsidePoint] = outsidePoints;
 
-  get normal() {
-    return this._normal;
-  }
+      const [texelInsidePoint1, texelInsidePoint2] = insideTexturePoints;
+      const [texelOutsidePoint] = outsideTexturePoints;
 
-  get d() {
-    return this._d;
+      const { pointOfIntersection: pointIntersect1, lambda: lambda1 } =
+        linePlaneIntersection(p, insidePoint1, outsidePoint);
+      const { pointOfIntersection: pointIntersect2, lambda: lambda2 } =
+        linePlaneIntersection(p, insidePoint2, outsidePoint);
+
+      const texelPointIntersect1 = t.hasTexture
+        ? vectorLerp(texelInsidePoint1, texelOutsidePoint, lambda1)
+        : null;
+      const texelPointIntersect2 = t.hasTexture
+        ? vectorLerp(texelInsidePoint2, texelOutsidePoint, lambda2)
+        : null;
+
+      return [
+        new Triangle(
+          [insidePoint1, pointIntersect1, insidePoint2],
+          t.color,
+          t.style,
+          // @ts-ignore
+          t.hasTexture
+            ? [texelInsidePoint1, texelPointIntersect1, texelInsidePoint2]
+            : t.texturePoints
+        ),
+        new Triangle(
+          [insidePoint2, pointIntersect1, pointIntersect2],
+          t.color,
+          t.style,
+          // @ts-ignore
+          t.hasTexture
+            ? [texelInsidePoint2, texelPointIntersect1, texelPointIntersect2]
+            : t.texturePoints // TODO
+        ),
+      ];
+    }
+
+    case 3:
+      return [t];
+
+    default:
+      return [];
   }
 }

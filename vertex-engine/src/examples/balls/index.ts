@@ -15,7 +15,7 @@ export const initBallsExample = async (gameEngine: GameEngine) => {
         rotation: new Vector(0, 4, 0),
       },
       transforms: {
-        rotate: (_, body) => body.rotation.add(body.forces.rotation),
+        rotate: (_, body) => body.direction.add(body.forces.rotation),
         move: (_, body) => body.position.add(body.forces.velocity),
         accelerate: (_, body) => {
           body.forces.acceleration.z = body.position.z >= 50 ? -0.1 : 0.1;
@@ -37,7 +37,7 @@ export const initBallsExample = async (gameEngine: GameEngine) => {
         rotation: new Vector(0, 8, 0),
       },
       transforms: {
-        rotate: (_, body) => body.rotation.add(body.forces.rotation),
+        rotate: (_, body) => body.direction.add(body.forces.rotation),
         move: (_, body) => body.position.add(body.forces.velocity),
         accelerate: (_, body) => {
           body.forces.acceleration.z = body.position.z >= 25 ? -0.2 : 0.2;

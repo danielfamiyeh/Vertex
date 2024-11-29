@@ -18,6 +18,8 @@ import {
 import { Camera } from '../../camera/Camera';
 import { Triangle } from '../../triangle/Triangle';
 import { RasterObject } from '../../engine/GraphicsEngine.types';
+import { printOne } from '../../engine/GraphicsEngine';
+import { planeClipTriangle } from '../../../math/plane/Plane';
 
 export class VertexShader {
   constructor(
@@ -33,14 +35,13 @@ export class VertexShader {
     if (!mesh) return null;
 
     const worldMatrix = matrixWorld(
-      entity.body?.rotation,
+      entity.body?.direction,
       entity.body?.position
     );
 
     const { viewMatrix } = matrixView(camera);
 
     const fragments: RasterObject[] = [];
-    const toPreFragments: RasterObject[] = [];
 
     entity.mesh?.triangles.forEach((triangle) => {
       const worldPoints = worldMatrix
@@ -61,8 +62,12 @@ export class VertexShader {
         worldPoints[0]
       );
 
-      // TODO: Use Camera.shouldCull
-      if (vectorDot(vPointToCamera, worldNormal) < 0) return;
+      if (
+        // Backface culling
+        vectorDot(vPointToCamera, worldNormal) < 0
+      ) {
+        return;
+      }
 
       const viewPoints = worldPoints
         .map((point) =>
@@ -72,45 +77,51 @@ export class VertexShader {
         )
         .map((v) => v.slice(0, 3));
 
-      const clippedTriangles = [
-        new Triangle(
-          viewPoints,
-          triangle.color,
-          triangle.style,
-          triangle.texturePoints
-        ),
-      ];
+      const viewTriangle = new Triangle(
+        viewPoints,
+        triangle.color,
+        triangle.style,
+        triangle.texturePoints
+      );
 
-      clippedTriangles.forEach((_triangle: Triangle) => {
-        const projectedPoints = _triangle.points.map((point) =>
-          matrixToVector(
-            matrixMultiply(
-              this._projectionMatrix,
-              vectorToColumnMatrix([...point, 1])
+      planeClipTriangle(camera.near, viewTriangle)
+        .flatMap((t) => planeClipTriangle(camera.far, t))
+        .forEach((t) => {
+          const projectedPoints = t.points.map((point) =>
+            matrixToVector(
+              matrixMultiply(
+                this._projectionMatrix,
+                vectorToColumnMatrix([...point, 1])
+              )
             )
-          )
-        );
-
-        const perspectivePoints = projectedPoints.map((point) => {
-          const p = vectorDiv(point, point[2]);
-          const scaled = vectorScale(
-            p,
-            (this._canvasHeight / this._canvasWidth) * this._canvasScale
           );
-          scaled[2] = 1;
-          return scaled.slice(0, 3);
-        });
 
-        _triangle.points = perspectivePoints;
+          const perspectivePoints = projectedPoints.map((point) => {
+            const p = vectorDiv(point, point[2]);
+            const scaled = vectorScale(
+              p,
+              (this._canvasHeight / this._canvasWidth) * this._canvasScale
+            );
+            scaled[2] = 1;
+            return scaled.slice(0, 3);
+          });
 
-        toPreFragments.push({
-          triangle: _triangle,
-          worldNormal,
-          centroid: worldPoints[0],
-          activeTexture: mesh.activeTexture,
+          viewTriangle.points = perspectivePoints;
+
+          planeClipTriangle(camera.left, viewTriangle)
+            .flatMap((t) => planeClipTriangle(camera.top, t))
+            .flatMap((t) => planeClipTriangle(camera.right, t))
+            .flatMap((t) => planeClipTriangle(camera.bottom, t))
+            .forEach((t) => {
+              fragments.push({
+                triangle: t,
+                worldNormal,
+                centroid: worldPoints[0],
+                activeTexture: mesh.activeTexture,
+              });
+            });
         });
-      });
     });
-    return toPreFragments;
+    return fragments;
   }
 }

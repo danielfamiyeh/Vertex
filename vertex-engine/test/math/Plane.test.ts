@@ -1,44 +1,173 @@
-// import assert from 'assert';
+import assert from 'assert';
+import { Triangle } from '../../src/api/graphics/triangle/Triangle';
+import {
+  Plane,
+  planeClipTriangle,
+  linePlaneIntersection,
+  planePointDistance,
+} from '../../src/api/math/plane/Plane';
 
-// import { Plane } from '../../src/api/math/plane/Plane';
-// import { Vector } from '../../src/api/math/vector/Vector';
+// Helper function for almost-equal comparisons (to handle floating-point imprecision)
+function vectorsAlmostEqual(v1, v2, epsilon = 1e-6) {
+  assert.strictEqual(v1.length, v2.length, 'Vector dimensions must match.');
+  const boolArr: boolean[] = [];
+  for (let i = 0; i < v1.length; i++) {
+    boolArr.push(Math.abs(v1[i] - v2[i]) < epsilon);
+  }
 
-// describe('Plane test suite', () => {
-//   let points: number[][] | Vector[] = [
-//     [1, -2, 0],
-//     [3, 1, 4],
-//     [0, -1, 2],
-//   ];
+  assert.strictEqual(
+    boolArr.reduce((a, b) => a && b, true),
+    true
+  );
+}
 
-//   points = points.map((p) => new Vector(...p));
+const plane: Plane = [
+  [0, 0, 0],
+  [0, 1, 0],
+];
 
-//   it('should return the point at which a ray intersects a plane', () => {
-//     const plane = Plane.fromPoints(
-//       <Vector>points[0],
-//       <Vector>points[1],
-//       <Vector>points[2]
-//     );
-//     let ray: number[][] | Vector[] = [
-//       [0.5, 1, 5],
-//       [1, 0, 1],
-//     ];
-//     ray = ray.map((point) => new Vector(...point));
+// Test cases
+describe('Plane test suite', () => {
+  it('should correctly compute the intersection of a line segment with a plane', () => {
+    const lineStart = [1, 1, 1];
+    const lineEnd = [1, -1, 1];
 
-//     const pointOfIntersection = plane.intersectRay(ray[0], ray[1]);
+    const expectedIntersection = [1, 0, 1];
 
-//     console.log(pointOfIntersection);
-//     assert.equal(pointOfIntersection?.isEqual(new Vector(0.5, 1, 5)), true);
-//   });
+    const { pointOfIntersection, lambda } = linePlaneIntersection(
+      plane,
+      lineStart,
+      lineEnd
+    );
 
-//   it('should return the signed distance from a given point', () => {
-//     const plane = Plane.fromPoints(
-//       <Vector>points[0],
-//       <Vector>points[1],
-//       <Vector>points[2]
-//     );
-//     const point = new Vector(5, 3, -1);
-//     const signedDistance = -0.10369516947304236;
+    vectorsAlmostEqual(pointOfIntersection, expectedIntersection),
+      assert(
+        Math.abs(planePointDistance(plane, pointOfIntersection)) <= 1e-6,
+        'Point does not lie on the plane.'
+      );
+    assert(
+      Math.abs(lambda - 0.5) <= 1e-6,
+      `Lambda is incorrect. Expected 0.5 but got ${lambda}.`
+    );
+  });
 
-//     assert.equal(plane.pointDistance(point), signedDistance);
-//   });
-// });
+  it('should return the same triangle when fully inside the plane', () => {
+    const triangle = new Triangle(
+      [
+        [1, 1, 1],
+        [-1, 1, 1],
+        [0, 1, -1],
+      ],
+      'red',
+      'stroke'
+    );
+
+    const result = planeClipTriangle(plane, triangle);
+    assert.strictEqual(result.length, 1);
+    result[0].points.forEach((point, i) =>
+      vectorsAlmostEqual(point, triangle.points[i])
+    );
+  });
+
+  it('should return an empty array when fully outside the plane', () => {
+    const triangle = new Triangle(
+      [
+        [1, -1, 1],
+        [-1, -1, 1],
+        [0, -1, -1],
+      ],
+      'red',
+      'stroke'
+    );
+
+    const result = planeClipTriangle(plane, triangle);
+    assert.strictEqual(result.length, 0);
+  });
+
+  it('should clip correctly when one vertex is inside', () => {
+    const triangle = new Triangle(
+      [
+        [0, 1, 0],
+        [1, -1, 1],
+        [-1, -1, -1],
+      ],
+      'red',
+      'stroke'
+    );
+
+    const result = planeClipTriangle(plane, triangle);
+    assert.strictEqual(result.length, 1);
+
+    const expectedPoints = [
+      [0, 1, 0],
+      [0.5, 0, 0.5],
+      [-0.5, 0, -0.5],
+    ];
+    result[0].points.forEach((point, i) =>
+      vectorsAlmostEqual(point, expectedPoints[i])
+    );
+  });
+
+  it('should clip correctly when two vertices are inside', () => {
+    const triangle = new Triangle(
+      [
+        [0, 1, 0],
+        [1, 1, 1],
+        [0, -1, -1],
+      ],
+      'red',
+      'stroke'
+    );
+
+    const result = planeClipTriangle(plane, triangle);
+
+    assert.strictEqual(result.length, 2);
+
+    const expectedTriangles = [
+      [
+        [0, 1, 0],
+        [0, 0, -0.5],
+        [1, 1, 1],
+      ],
+      [
+        [1, 1, 1],
+        [0, 0, -0.5],
+        [0.5, 0, 0],
+      ],
+    ];
+
+    result.forEach((tri, i) => {
+      tri.points.forEach((point, j) =>
+        vectorsAlmostEqual(point, expectedTriangles[i][j])
+      );
+    });
+  });
+
+  it('should handle degenerate cases correctly', () => {
+    const plane: Plane = [
+      [0, 0, 0],
+      [0, 1, 0],
+    ]; // y = 0
+    const triangle = new Triangle(
+      [
+        [1, 0, 1],
+        [-1, 0, 1],
+        [0, 0, -1],
+      ],
+      'red',
+      'stroke'
+    );
+
+    const result = planeClipTriangle(plane, triangle);
+    assert.strictEqual(result.length, 1);
+
+    const expectedPoints = [
+      [1, 0, 1],
+      [-1, 0, 1],
+      [0, 0, -1],
+    ];
+    result[0].points.forEach((point, i) =>
+      vectorsAlmostEqual(point, expectedPoints[i])
+    );
+  });
+});

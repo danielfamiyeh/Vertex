@@ -6,7 +6,7 @@ import { Sphere } from '../../math/sphere/Sphere';
 
 export class RigidBody {
   private _position: Vector;
-  private _rotation: Vector;
+  private _direction: Vector;
   private _mass: number;
   private _transforms: Record<string, RigidBodyTransform>;
   private _forces: Record<string, Vector> = {};
@@ -15,7 +15,7 @@ export class RigidBody {
 
   constructor(options?: RigidBodyOptions) {
     this._position = options?.position ?? vectorZeroes(3);
-    this._rotation = options?.rotation ?? vectorZeroes(3);
+    this._direction = options?.direction ?? vectorZeroes(3);
     this._mass = options?.mass ?? 1;
     this._forces = options?.forces ?? {};
     this._transforms = options?.transforms ?? {};
@@ -60,16 +60,16 @@ export class RigidBody {
     return this._position;
   }
 
-  get rotation() {
-    return this._rotation;
+  get direction() {
+    return this._direction;
   }
 
   set position(v: Vector) {
     this._position = v;
   }
 
-  set rotation(v: Vector) {
-    this._rotation = v;
+  set direction(v: Vector) {
+    this._direction = v;
   }
 
   get mass() {

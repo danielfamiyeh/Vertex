@@ -1,6 +1,6 @@
 import { Mesh, MeshStyle } from '../mesh/Mesh';
 import { Camera } from '../camera/Camera';
-import { Matrix, matrixProjection, matrixView } from '../../math/matrix/Matrix';
+import { matrixProjection } from '../../math/matrix/Matrix';
 import {
   Vector,
   vectorAdd,
@@ -9,10 +9,7 @@ import {
   vectorSub,
 } from '../../math/vector/Vector';
 import { GraphicsEngineOptions } from './GraphicsEngine.types';
-import {
-  GRAPHICS_ENGINE_OPTIONS_DEFAULTS,
-  PIPELINE_STAGES,
-} from './GraphicsEngine.utils';
+import { GRAPHICS_ENGINE_OPTIONS_DEFAULTS } from './GraphicsEngine.utils';
 import { Triangle } from '../triangle/Triangle';
 import { Entity } from '../../game/entity/Entity';
 import { Sphere } from '../../math/sphere/Sphere';
@@ -20,10 +17,9 @@ import { Light } from '../light/Light';
 import { RigidBody } from '../../physics/rigid-body/RigidBody';
 import { GameEngine } from '../../game/engine/GameEngine';
 import { MeshData } from '../mesh/Mesh.types';
-import { Fragment, FragmentShader, VertexShader } from '../shader';
+import { Fragment, VertexShader } from '../shader';
 import { Rasterizer } from '../rasterizer/Rasterizer';
 import { Framebuffer } from '../framebuffer/Framebuffer';
-import { Pool } from '../../util/pool/Pool';
 
 let printed = 0;
 export const printOne = (msg: any) => {
@@ -45,8 +41,6 @@ export class GraphicsEngine {
   private _textureImageData: Record<string, ImageData> = {};
   private _framebuffer: Framebuffer;
   private _vertexShader: VertexShader;
-  private _vectorPool: Pool<Vector>;
-  private _trianglePool: Pool<Triangle>;
   private _fragmentQueue: Fragment[][] = [];
 
   constructor(
@@ -79,16 +73,16 @@ export class GraphicsEngine {
 
     cameraEntity.body = new RigidBody({
       position: _options.camera.position,
-      rotation: _options.camera.direction,
+      direction: _options.camera.direction,
     });
 
     this.camera = new Camera({
       displacement: _options.camera.displacement,
       near: _options.camera.near,
       far: _options.camera.far,
-      bottom: _canvas.height,
-      right: _canvas.width,
       body: cameraEntity.body,
+      right: this.canvas.width,
+      top: this.canvas.height,
     });
 
     this._vertexShader = new VertexShader(
@@ -97,13 +91,6 @@ export class GraphicsEngine {
       _canvas.width,
       _canvas.height,
       this.scale
-    );
-
-    this._vectorPool = new Pool(() => [], _options.pool.size as number);
-
-    this._trianglePool = new Pool(
-      () => new Triangle([], '', 'stroke'),
-      _options.pool.size as number
     );
 
     this._framebuffer = new Framebuffer(this._canvas, this._ctx);
@@ -126,8 +113,8 @@ export class GraphicsEngine {
 
     cameraEntity.body.transforms.rotate = () => {
       if (cameraEntity.body?.position && cameraEntity.body.forces.velocity) {
-        cameraEntity.body.rotation = vectorAdd(
-          cameraEntity.body?.rotation,
+        cameraEntity.body.direction = vectorAdd(
+          cameraEntity.body?.direction,
           cameraEntity.body.forces.rotation
         );
       }
@@ -313,17 +300,6 @@ export class GraphicsEngine {
     });
   }
 
-  private _handleWorker(evt: MessageEvent<any>) {
-    switch (evt.data.stage) {
-      case PIPELINE_STAGES.rasterization: {
-        // @ts-ignore
-        window.__VERTEX_GAME_ENGINE__?.graphics.fragmentQueue.push(
-          evt.data.fragments
-        );
-      }
-    }
-  }
-
   render(entities: Record<string, Entity>) {
     let newFragments = false;
 
@@ -335,6 +311,7 @@ export class GraphicsEngine {
 
       if (vertexOutput) {
         const textureKey = entity.mesh?.activeTexture ?? '';
+
         const fragments = Rasterizer.compute(
           vertexOutput,
           this._textureImageData[textureKey],

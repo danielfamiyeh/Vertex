@@ -1,4 +1,5 @@
 import { Vector, vectorScale, vectorSub } from '../../math/vector/Vector';
+import { printOne } from '../engine/GraphicsEngine';
 import { RasterObject } from '../engine/GraphicsEngine.types';
 import { Fragment } from '../shader';
 
@@ -9,12 +10,15 @@ export class Rasterizer {
     dydx: number,
     worldNormal: Vector,
     centroid: Vector,
-    pixelColor: number[]
+    pixelColor: number[],
+    screenBounds: { width: number; height: number }
   ) {
     const partialFragments: Fragment[] = [];
 
     if (Math.abs(dydx) === Infinity) {
-      const [minY, maxY] = [startPoint[1], endPoint[1]].sort((a, b) => a - b);
+      let [minY, maxY] = [startPoint[1], endPoint[1]].sort((a, b) => a - b);
+      minY = Math.max(minY, -(screenBounds.height / 2));
+      maxY = Math.min(maxY, screenBounds.height / 2 - 1);
       for (let y = minY; y <= maxY; y++) {
         partialFragments.push({
           x: startPoint[0],
@@ -25,7 +29,9 @@ export class Rasterizer {
         });
       }
     } else {
-      const [minX, maxX] = [startPoint[0], endPoint[0]].sort((a, b) => a - b);
+      let [minX, maxX] = [startPoint[0], endPoint[0]].sort((a, b) => a - b);
+      minX = Math.max(minX, -(screenBounds.width / 2));
+      maxX = Math.min(maxX, screenBounds.width / 2 - 1);
       for (let x = minX; x <= maxX; x++) {
         const y = Math.floor(startPoint[1] + dydx * (x - startPoint[0]));
         partialFragments.push({
@@ -129,7 +135,8 @@ export class Rasterizer {
           dydx1,
           worldNormal,
           centroid,
-          [255, 255, 255]
+          [255, 255, 255],
+          screenBounds
         );
 
         const partialFragments2 = Rasterizer.getPartialFragments(
@@ -138,7 +145,8 @@ export class Rasterizer {
           dydx2,
           worldNormal,
           centroid,
-          [255, 255, 255]
+          [255, 255, 255],
+          screenBounds
         );
 
         const partialFragments3 = Rasterizer.getPartialFragments(
@@ -147,7 +155,8 @@ export class Rasterizer {
           dydx3,
           worldNormal,
           centroid,
-          [255, 255, 255]
+          [255, 255, 255],
+          screenBounds
         );
 
         for (let i = 0; i < partialFragments1.length; i++) {
