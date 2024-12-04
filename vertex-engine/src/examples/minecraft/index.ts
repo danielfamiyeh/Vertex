@@ -27,6 +27,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
   //   },
   //   physics: {
   //     position: [-20, 0, 5],
+  //     direction: [0, 0, 0],
   //   },
   // });
 
@@ -86,12 +87,12 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     },
   });
 
-  cube.body?.addForce('rotation', [0, 1, 0]);
+  cube.body?.addForce('rotation', [0, 0.25, 0]);
   cube.body?.addTransform('rotate', (_, self) => {
     self.direction = vectorAdd(self.direction, self.forces.rotation);
   });
 
-  cube.mesh?.activeTexture = 'cubeMain';
+  cube.mesh.activeTexture = 'cubeMain';
   gameEngine.addToScene({ cube, castle });
 
   console.log(castle);

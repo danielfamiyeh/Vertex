@@ -90,8 +90,6 @@ export function planeClipTriangle(p: Plane, t: Triangle) {
 
     case 2: {
       // Our plane intersection forms a quadrilateral with the two inside points
-      // t1 = <pInside1, pIntersection1, pInside2>
-      // t2 = <pIntersection1, pIntersection2, pInside2>
 
       const [insidePoint1, insidePoint2] = insidePoints;
       const [outsidePoint] = outsidePoints;
@@ -122,13 +120,13 @@ export function planeClipTriangle(p: Plane, t: Triangle) {
             : t.texturePoints
         ),
         new Triangle(
-          [insidePoint2, pointIntersect1, pointIntersect2],
+          [pointIntersect1, insidePoint2, pointIntersect2],
           t.color,
           t.style,
           // @ts-ignore
           t.hasTexture
             ? [texelInsidePoint2, texelPointIntersect1, texelPointIntersect2]
-            : t.texturePoints // TODO
+            : t.texturePoints
         ),
       ];
     }
