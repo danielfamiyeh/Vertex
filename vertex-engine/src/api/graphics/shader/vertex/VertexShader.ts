@@ -62,12 +62,7 @@ export class VertexShader {
         worldPoints[0]
       );
 
-      if (
-        // Backface culling
-        vectorDot(vPointToCamera, worldNormal) < 0
-      ) {
-        return;
-      }
+      if (vectorDot(vPointToCamera, worldNormal) < 0) return;
 
       const viewPoints = worldPoints
         .map((point) =>

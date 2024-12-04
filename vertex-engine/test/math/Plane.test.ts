@@ -170,4 +170,8 @@ describe('Plane test suite', () => {
       vectorsAlmostEqual(point, expectedPoints[i])
     );
   });
+
+  it('should correctly clip a triangle with a texture when one vertex is inside the plane', () => {});
+
+  it('should correctly clip a triangle with a texture when two vertices are inside the plane', () => {});
 });
