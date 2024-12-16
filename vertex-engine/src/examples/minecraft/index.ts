@@ -92,7 +92,7 @@ export const initMinecraftExample = async (gameEngine: GameEngine) => {
     self.direction = vectorAdd(self.direction, self.forces.rotation);
   });
 
-  cube.mesh.activeTexture = 'cubeMain';
+  if (cube.mesh) cube.mesh.activeTexture = 'cubeMain';
   gameEngine.addToScene({ cube, castle });
 
   console.log(castle);
